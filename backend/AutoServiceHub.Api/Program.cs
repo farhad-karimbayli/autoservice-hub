@@ -118,4 +118,5 @@ using (var scope = app.Services.CreateScope())
     await IdentitySeeder.Seed(scope.ServiceProvider);
 }
 
+
 app.Run();
