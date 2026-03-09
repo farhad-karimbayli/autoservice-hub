@@ -1,7 +1,19 @@
 using AutoServiceHub.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using AutoServiceHub.Api.Domain;
+using Microsoft.AspNetCore.Identity;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddIdentityCore<AppUser>(opt =>
+    {
+        opt.User.RequireUniqueEmail = true;
+        opt.Password.RequireNonAlphanumeric = false;
+    })
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddControllers();
 
