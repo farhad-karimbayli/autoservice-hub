@@ -1,19 +1,52 @@
 using System.Text;
 using AutoServiceHub.Api.Application.Auth;
+using AutoServiceHub.Api.Application.Inventory;
 using AutoServiceHub.Api.Domain;
 using AutoServiceHub.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using AutoServiceHub.Api.Application.Inventory;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<InventoryService>();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "AutoServiceHub API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Введите JWT токен в формате: Bearer {your token}",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
@@ -46,14 +79,11 @@ builder.Services
         {
             ValidateIssuer = true,
             ValidIssuer = jwtOptions.Issuer,
-
             ValidateAudience = true,
             ValidAudience = jwtOptions.Audience,
-
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtOptions.Key)),
-
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
@@ -62,13 +92,18 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<InventoryService>();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "AutoServiceHub API v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
@@ -80,7 +115,7 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    await IdentitySeeder.SeedRoles(scope.ServiceProvider);
+    await IdentitySeeder.Seed(scope.ServiceProvider);
 }
 
 app.Run();
