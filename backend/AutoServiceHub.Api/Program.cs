@@ -9,12 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using AutoServiceHub.Api.Application.Appointments;
+using AutoServiceHub.Api.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<AppointmentService>();
+builder.Services.AddScoped<ServicesService>();
 
 builder.Services.AddSwaggerGen(options =>
 {
