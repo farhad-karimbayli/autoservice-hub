@@ -1,3 +1,5 @@
+using AutoServiceHub.Api.Domain.Enums;
+
 namespace AutoServiceHub.Api.Domain.Entities;
 
 public sealed class Appointment
@@ -10,9 +12,11 @@ public sealed class Appointment
 
     public int ServiceId { get; set; }
 
+    public Service Service { get; set; } = null!;
+
     public DateTime Date { get; set; }
 
-    public string Status { get; set; } = "Created";
+    public AppointmentStatus Status { get; set; } = AppointmentStatus.Created;
 
     public string? Comment { get; set; }
 }

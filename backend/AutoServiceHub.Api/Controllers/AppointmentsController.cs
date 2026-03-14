@@ -1,0 +1,73 @@
+using System.Security.Claims;
+using AutoServiceHub.Api.Application.Appointments;
+using AutoServiceHub.Api.Application.Appointments.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace AutoServiceHub.Api.Controllers;
+
+[ApiController]
+[Route("api/appointments")]
+public sealed class AppointmentsController : ControllerBase
+{
+    private readonly AppointmentService _appointmentService;
+
+    public AppointmentsController(AppointmentService appointmentService)
+    {
+        _appointmentService = appointmentService;
+    }
+
+    [Authorize(Roles = "Client")]
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateAppointmentRequest request)
+    {
+        var clientId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(clientId))
+            return Unauthorized();
+
+        try
+        {
+            var result = await _appointmentService.CreateAsync(clientId, request);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Client")]
+    [HttpGet("my")]
+    public async Task<IActionResult> My()
+    {
+        var clientId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(clientId))
+            return Unauthorized();
+
+        var result = await _appointmentService.GetClientAppointmentsAsync(clientId);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Master")]
+    [HttpGet("master")]
+    public async Task<IActionResult> Master()
+    {
+        var masterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(masterId))
+            return Unauthorized();
+
+        var result = await _appointmentService.GetMasterAppointmentsAsync(masterId);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Director,Admin")]
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _appointmentService.GetAllAsync();
+        return Ok(result);
+    }
+}

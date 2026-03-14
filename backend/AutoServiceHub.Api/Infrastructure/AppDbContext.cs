@@ -22,20 +22,38 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
 
         builder.Entity<Service>(entity =>
         {
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Price)
+                .HasColumnType("decimal(18,2)");
         });
 
         builder.Entity<Part>(entity =>
         {
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Price)
+                .HasColumnType("decimal(18,2)");
         });
 
         builder.Entity<Appointment>(entity =>
         {
-            entity.Property(x => x.Status).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Comment).HasMaxLength(1000);
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.Comment)
+                .HasMaxLength(1000);
+
+            entity.HasOne(x => x.Service)
+                .WithMany(x => x.Appointments)
+                .HasForeignKey(x => x.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<InventoryItem>(entity =>
@@ -45,7 +63,8 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
                 .HasForeignKey<InventoryItem>(x => x.PartId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(x => x.PartId).IsUnique();
+            entity.HasIndex(x => x.PartId)
+                .IsUnique();
         });
     }
 }

@@ -9,4 +9,6 @@ public sealed class Service
     public decimal Price { get; set; }
 
     public int DurationMinutes { get; set; }
+
+    public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 }
