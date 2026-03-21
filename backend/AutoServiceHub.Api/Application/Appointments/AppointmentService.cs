@@ -3,16 +3,20 @@ using AutoServiceHub.Api.Domain.Entities;
 using AutoServiceHub.Api.Domain.Enums;
 using AutoServiceHub.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using AutoServiceHub.Api.Domain;
+using Microsoft.AspNetCore.Identity;
 
 namespace AutoServiceHub.Api.Application.Appointments;
 
 public sealed class AppointmentService
 {
     private readonly AppDbContext _dbContext;
+    private readonly UserManager<AppUser> _userManager;
 
-    public AppointmentService(AppDbContext dbContext)
+    public AppointmentService(AppDbContext dbContext,UserManager<AppUser> userManager)
     {
         _dbContext = dbContext;
+        _userManager = userManager;
     }
 
     public async Task<AppointmentResponse> CreateAsync(
@@ -107,5 +111,75 @@ public sealed class AppointmentService
                 MasterId = x.MasterId
             })
             .ToListAsync();
+    }
+
+    public async Task<AppointmentResponse> AssignMasterAsync(int appointmentId, string masterId)
+    {
+        var appointment = await _dbContext.Appointments
+            .Include(x => x.Service)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId);
+
+        if (appointment is null)
+            throw new InvalidOperationException("Appointment not found.");
+
+        var masterUser = await _userManager.FindByIdAsync(masterId);
+
+        if (masterUser is null)
+            throw new InvalidOperationException("Master user not found.");
+
+        var isMaster = await _userManager.IsInRoleAsync(masterUser, "Master");
+
+        if (!isMaster)
+            throw new InvalidOperationException("Selected user is not a master.");
+
+        appointment.MasterId = masterId;
+
+        if (appointment.Status == AppointmentStatus.Created)
+            appointment.Status = AppointmentStatus.Confirmed;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new AppointmentResponse
+        {
+            Id = appointment.Id,
+            ServiceId = appointment.ServiceId,
+            ServiceName = appointment.Service.Name,
+            Date = appointment.Date,
+            Status = appointment.Status.ToString(),
+            Comment = appointment.Comment,
+            ClientId = appointment.ClientId,
+            MasterId = appointment.MasterId
+        };
+    }
+
+    public async Task<AppointmentResponse> UpdateStatusAsync(
+        int appointmentId,
+        string status)
+    {
+        var appointment = await _dbContext.Appointments
+            .Include(x => x.Service)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId);
+
+        if (appointment is null)
+            throw new InvalidOperationException("Appointment not found.");
+
+        if (!Enum.TryParse<AppointmentStatus>(status, true, out var parsedStatus))
+            throw new InvalidOperationException("Invalid appointment status.");
+
+        appointment.Status = parsedStatus;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new AppointmentResponse
+        {
+            Id = appointment.Id,
+            ServiceId = appointment.ServiceId,
+            ServiceName = appointment.Service.Name,
+            Date = appointment.Date,
+            Status = appointment.Status.ToString(),
+            Comment = appointment.Comment,
+            ClientId = appointment.ClientId,
+            MasterId = appointment.MasterId
+        };
     }
 }

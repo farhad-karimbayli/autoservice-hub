@@ -70,4 +70,34 @@ public sealed class AppointmentsController : ControllerBase
         var result = await _appointmentService.GetAllAsync();
         return Ok(result);
     }
+
+    [Authorize(Roles = "Director,Admin")]
+    [HttpPost("{id:int}/assign-master")]
+    public async Task<IActionResult> AssignMaster(int id, AssignMasterRequest request)
+    {
+        try
+        {
+            var result = await _appointmentService.AssignMasterAsync(id, request.MasterId);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Director,Admin,Master")]
+    [HttpPost("{id:int}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, UpdateAppointmentStatusRequest request)
+    {
+        try
+        {
+            var result = await _appointmentService.UpdateStatusAsync(id, request.Status);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
