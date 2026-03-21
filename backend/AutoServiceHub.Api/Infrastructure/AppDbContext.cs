@@ -15,6 +15,9 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<Part> Parts => Set<Part>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -65,6 +68,33 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
 
             entity.HasIndex(x => x.PartId)
                 .IsUnique();
+        });
+
+        builder.Entity<Order>(entity =>
+        {
+            entity.Property(x => x.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+        });
+
+        builder.Entity<OrderItem>(entity =>
+        {
+            entity.Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            entity.HasOne(x => x.Order)
+                .WithMany(x => x.Items)
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Part)
+                .WithMany(x => x.OrderItems)
+                .HasForeignKey(x => x.PartId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

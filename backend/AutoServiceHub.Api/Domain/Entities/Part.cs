@@ -9,4 +9,6 @@ public sealed class Part
     public decimal Price { get; set; }
 
     public InventoryItem? InventoryItem { get; set; }
+
+    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }
