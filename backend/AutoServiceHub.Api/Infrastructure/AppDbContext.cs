@@ -17,6 +17,7 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<PartsRequest> PartsRequests => Set<PartsRequest>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -93,6 +94,22 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
 
             entity.HasOne(x => x.Part)
                 .WithMany(x => x.OrderItems)
+                .HasForeignKey(x => x.PartId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PartsRequest>(entity =>
+        {
+            entity.Property(x => x.Comment)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasOne(x => x.Part)
+                .WithMany(x => x.PartsRequests)
                 .HasForeignKey(x => x.PartId)
                 .OnDelete(DeleteBehavior.Restrict);
         });

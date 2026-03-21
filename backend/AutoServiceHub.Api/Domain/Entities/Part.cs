@@ -11,4 +11,6 @@ public sealed class Part
     public InventoryItem? InventoryItem { get; set; }
 
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+    public ICollection<PartsRequest> PartsRequests { get; set; } = new List<PartsRequest>();
 }

@@ -11,6 +11,7 @@ using Microsoft.OpenApi.Models;
 using AutoServiceHub.Api.Application.Appointments;
 using AutoServiceHub.Api.Application.Services;
 using AutoServiceHub.Api.Application.Orders;
+using AutoServiceHub.Api.Application.PartsRequests;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<PartsRequestService>();
 
 builder.Services.AddSwaggerGen(options =>
 {
