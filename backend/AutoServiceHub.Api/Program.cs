@@ -1,6 +1,10 @@
 using System.Text;
+using AutoServiceHub.Api.Application.Appointments;
 using AutoServiceHub.Api.Application.Auth;
 using AutoServiceHub.Api.Application.Inventory;
+using AutoServiceHub.Api.Application.Orders;
+using AutoServiceHub.Api.Application.PartsRequests;
+using AutoServiceHub.Api.Application.Services;
 using AutoServiceHub.Api.Domain;
 using AutoServiceHub.Api.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,19 +12,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using AutoServiceHub.Api.Application.Appointments;
-using AutoServiceHub.Api.Application.Services;
-using AutoServiceHub.Api.Application.Orders;
-using AutoServiceHub.Api.Application.PartsRequests;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<PartsRequestService>();
+builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<InventoryService>();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -53,6 +56,17 @@ builder.Services.AddSwaggerGen(options =>
             },
             Array.Empty<string>()
         }
+    });
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -99,9 +113,6 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddScoped<JwtTokenService>();
-builder.Services.AddScoped<InventoryService>();
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -114,7 +125,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+
+app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -125,6 +138,5 @@ using (var scope = app.Services.CreateScope())
 {
     await IdentitySeeder.Seed(scope.ServiceProvider);
 }
-
 
 app.Run();
