@@ -105,4 +105,20 @@ public sealed class InventoryService
             Quantity = inventoryItem.Quantity
         };
     }
+
+    public async Task<List<InventoryItemResponse>> GetAvailableForClientAsync()
+    {
+        return await _dbContext.InventoryItems
+            .Include(x => x.Part)
+            .Where(x => x.Quantity > 0)
+            .OrderBy(x => x.Part.Name)
+            .Select(x => new InventoryItemResponse
+            {
+                PartId = x.PartId,
+                PartName = x.Part.Name,
+                PartPrice = x.Part.Price,
+                Quantity = x.Quantity
+            })
+            .ToListAsync();
+    }
 }

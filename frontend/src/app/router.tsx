@@ -13,6 +13,7 @@ import { CreateOrderPage } from "../pages/CreateOrderPage";
 import { InventoryPage } from "../pages/InventoryPage";
 import { MyPartsRequestsPage } from "../pages/MyPartsRequestsPage";
 import { AllPartsRequestsPage } from "../pages/AllPartsRequestsPage";
+import { ManageMastersPage } from "../pages/ManageMastersPage";
 
 export const router = createBrowserRouter([
     {
@@ -97,6 +98,15 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute roles={["Admin"]}>
                         <AdminUsersPage />
+                    </ProtectedRoute>
+                ),
+            },
+
+            {
+                path: "manage/masters",
+                element: (
+                    <ProtectedRoute roles={["Director", "Admin"]}>
+                        <ManageMastersPage />
                     </ProtectedRoute>
                 ),
             },

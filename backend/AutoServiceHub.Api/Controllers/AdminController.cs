@@ -34,6 +34,7 @@ public sealed class AdminController : ControllerBase
                 u.FullName,
                 u.PhoneNumber
             })
+            .OrderBy(x => x.Email)
             .ToList();
 
         return Ok(users);
@@ -48,61 +49,78 @@ public sealed class AdminController : ControllerBase
         if (user == null)
             return NotFound(new { message = "User not found." });
 
-        var roles = await _userManager.GetRolesAsync(user);
+        var roleExists = await _dbContext.Roles.AnyAsync(x => x.Name == request.Role);
+        if (!roleExists)
+            return BadRequest(new { message = "Role does not exist." });
 
-        if (roles.Any())
-            await _userManager.RemoveFromRolesAsync(user, roles);
+        var currentRoles = await _userManager.GetRolesAsync(user);
 
-        var result = await _userManager.AddToRoleAsync(user, request.Role);
+        if (currentRoles.Any())
+        {
+            var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+                return BadRequest(removeResult.Errors);
+        }
 
-        if (!result.Succeeded)
-            return BadRequest(result.Errors);
+        var addResult = await _userManager.AddToRoleAsync(user, request.Role);
+        if (!addResult.Succeeded)
+            return BadRequest(addResult.Errors);
 
         return Ok(new { message = "Role assigned successfully." });
     }
 
     [Authorize(Roles = "Admin,Director")]
-    [HttpPost("masters/{masterId}/services")]
-    public async Task<IActionResult> AssignMasterServices(
-        string masterId,
-        AssignMasterServicesRequest request)
+    [HttpGet("masters")]
+    public async Task<IActionResult> GetMastersList()
     {
-        var master = await _userManager.FindByIdAsync(masterId);
+        var masters = await _userManager.GetUsersInRoleAsync("Master");
 
-        if (master == null)
-            return NotFound(new { message = "Master not found." });
+        var result = masters
+            .Select(user => new
+            {
+                user.Id,
+                user.Email,
+                user.FullName,
+                user.PhoneNumber
+            })
+            .OrderBy(x => x.Email)
+            .ToList();
 
-        var isMaster = await _userManager.IsInRoleAsync(master, "Master");
+        return Ok(result);
+    }
 
-        if (!isMaster)
-            return BadRequest(new { message = "Selected user is not a master." });
+    [Authorize(Roles = "Admin,Director")]
+    [HttpPost("masters/{masterId}/services")]
+    public async Task<IActionResult> AssignServices(string masterId, AssignMasterServicesRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(masterId);
 
-        var serviceIds = request.ServiceIds.Distinct().ToList();
+        if (user == null)
+            return NotFound(new { message = "User not found." });
 
-        var existingServices = await _dbContext.Services
-            .Where(x => serviceIds.Contains(x.Id))
+        if (!await _userManager.IsInRoleAsync(user, "Master"))
+            return BadRequest(new { message = "User is not a master." });
+
+        var validServiceIds = await _dbContext.Services
+            .Where(x => request.ServiceIds.Contains(x.Id))
             .Select(x => x.Id)
             .ToListAsync();
 
-        if (existingServices.Count != serviceIds.Count)
-            return BadRequest(new { message = "One or more services were not found." });
+        var existing = _dbContext.MasterServices.Where(x => x.MasterId == masterId);
+        _dbContext.MasterServices.RemoveRange(existing);
 
-        var oldRelations = await _dbContext.MasterServices
-            .Where(x => x.MasterId == masterId)
-            .ToListAsync();
-
-        _dbContext.MasterServices.RemoveRange(oldRelations);
-
-        var newRelations = serviceIds.Select(serviceId => new MasterService
+        foreach (var serviceId in validServiceIds.Distinct())
         {
-            MasterId = masterId,
-            ServiceId = serviceId
-        });
+            _dbContext.MasterServices.Add(new MasterService
+            {
+                MasterId = masterId,
+                ServiceId = serviceId
+            });
+        }
 
-        await _dbContext.MasterServices.AddRangeAsync(newRelations);
         await _dbContext.SaveChangesAsync();
 
-        return Ok(new { message = "Master services updated successfully." });
+        return Ok(new { message = "Services assigned successfully." });
     }
 
     [Authorize(Roles = "Admin,Director")]
@@ -115,10 +133,9 @@ public sealed class AdminController : ControllerBase
             .Select(x => new
             {
                 x.ServiceId,
-                ServiceName = x.Service.Name,
-                x.Service.Price,
-                x.Service.DurationMinutes
+                x.Service.Name
             })
+            .OrderBy(x => x.Name)
             .ToListAsync();
 
         return Ok(services);
@@ -126,38 +143,33 @@ public sealed class AdminController : ControllerBase
 
     [Authorize(Roles = "Admin,Director")]
     [HttpPost("masters/{masterId}/working-hours")]
-    public async Task<IActionResult> AddWorkingHour(
-        string masterId,
-        SetWorkingHoursRequest request)
+    public async Task<IActionResult> SetWorkingHours(string masterId, SetWorkingHoursRequest request)
     {
-        var master = await _userManager.FindByIdAsync(masterId);
+        var user = await _userManager.FindByIdAsync(masterId);
 
-        if (master == null)
-            return NotFound(new { message = "Master not found." });
+        if (user == null)
+            return NotFound(new { message = "User not found." });
 
-        var isMaster = await _userManager.IsInRoleAsync(master, "Master");
-
-        if (!isMaster)
-            return BadRequest(new { message = "Selected user is not a master." });
+        if (!await _userManager.IsInRoleAsync(user, "Master"))
+            return BadRequest(new { message = "User is not a master." });
 
         if (request.DayOfWeek < 1 || request.DayOfWeek > 7)
             return BadRequest(new { message = "DayOfWeek must be between 1 and 7." });
 
         if (request.StartTime >= request.EndTime)
-            return BadRequest(new { message = "StartTime must be less than EndTime." });
+            return BadRequest(new { message = "StartTime must be earlier than EndTime." });
 
-        var entity = new MasterWorkingHour
+        _dbContext.MasterWorkingHours.Add(new MasterWorkingHour
         {
             MasterId = masterId,
             DayOfWeek = request.DayOfWeek,
             StartTime = request.StartTime,
             EndTime = request.EndTime
-        };
+        });
 
-        _dbContext.MasterWorkingHours.Add(entity);
         await _dbContext.SaveChangesAsync();
 
-        return Ok(new { message = "Working hour added successfully." });
+        return Ok(new { message = "Working hours added successfully." });
     }
 
     [Authorize(Roles = "Admin,Director")]
@@ -171,6 +183,7 @@ public sealed class AdminController : ControllerBase
             .Select(x => new
             {
                 x.Id,
+                x.MasterId,
                 x.DayOfWeek,
                 x.StartTime,
                 x.EndTime
@@ -184,12 +197,12 @@ public sealed class AdminController : ControllerBase
     [HttpDelete("masters/working-hours/{id:int}")]
     public async Task<IActionResult> DeleteWorkingHour(int id)
     {
-        var hour = await _dbContext.MasterWorkingHours.FindAsync(id);
+        var entity = await _dbContext.MasterWorkingHours.FirstOrDefaultAsync(x => x.Id == id);
 
-        if (hour == null)
+        if (entity == null)
             return NotFound(new { message = "Working hour not found." });
 
-        _dbContext.MasterWorkingHours.Remove(hour);
+        _dbContext.MasterWorkingHours.Remove(entity);
         await _dbContext.SaveChangesAsync();
 
         return Ok(new { message = "Working hour deleted successfully." });

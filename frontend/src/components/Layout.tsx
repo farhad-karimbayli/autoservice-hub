@@ -44,6 +44,10 @@ export function Layout() {
 
                     {(role === "Director" || role === "Admin") && (
                         <>
+                            <Link to="/manage/services">Manage services</Link>
+                            <Link to="/manage/parts">Manage parts</Link>
+                            <Link to="/manage/masters">Manage masters</Link>
+                            <Link to="/inventory">Inventory</Link>
                             <Link to="/parts-requests">Parts requests</Link>
                         </>
                     )}
