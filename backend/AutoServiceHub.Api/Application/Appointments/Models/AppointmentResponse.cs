@@ -17,4 +17,6 @@ public sealed class AppointmentResponse
     public string ClientId { get; set; } = string.Empty;
 
     public string? MasterId { get; set; }
+
+    public string? MasterName { get; set; }
 }

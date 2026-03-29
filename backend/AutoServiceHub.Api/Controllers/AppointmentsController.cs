@@ -100,4 +100,12 @@ public sealed class AppointmentsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [Authorize(Roles = "Client")]
+    [HttpGet("available-masters")]
+    public async Task<IActionResult> GetAvailableMasters([FromQuery] int serviceId, [FromQuery] DateTime date)
+    {
+        var result = await _appointmentService.GetAvailableMastersAsync(serviceId, date);
+        return Ok(result);
+    }
 }
