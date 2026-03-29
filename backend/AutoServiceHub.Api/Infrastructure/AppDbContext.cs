@@ -18,6 +18,8 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<PartsRequest> PartsRequests => Set<PartsRequest>();
+    public DbSet<MasterService> MasterServices => Set<MasterService>();
+    public DbSet<MasterWorkingHour> MasterWorkingHours => Set<MasterWorkingHour>();
 
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -112,6 +114,20 @@ public sealed class AppDbContext : IdentityDbContext<AppUser>
                 .WithMany(x => x.PartsRequests)
                 .HasForeignKey(x => x.PartId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<MasterService>(entity =>
+        {
+            entity.HasOne(x => x.Service)
+                .WithMany()
+                .HasForeignKey(x => x.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MasterWorkingHour>(entity =>
+        {
+            entity.Property(x => x.StartTime).IsRequired();
+            entity.Property(x => x.EndTime).IsRequired();
         });
     }
 }

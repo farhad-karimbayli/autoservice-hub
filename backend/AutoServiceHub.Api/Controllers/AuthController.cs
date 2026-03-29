@@ -25,8 +25,16 @@ public sealed class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.FullName))
+            return BadRequest(new { message = "Full name is required." });
+
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber))
+            return BadRequest(new { message = "Phone number is required." });
+
         var user = new AppUser
         {
+            FullName = request.FullName.Trim(),
+            PhoneNumber = request.PhoneNumber.Trim(),
             Email = request.Email,
             UserName = request.Email
         };
