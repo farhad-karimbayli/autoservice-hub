@@ -318,4 +318,103 @@ public sealed class AppointmentService
             MasterName = null
         };
     }
+
+    public async Task<AppointmentResponse> CancelAsync(int appointmentId, string clientId)
+    {
+        var appointment = await _dbContext.Appointments
+            .Include(x => x.Service)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId);
+
+        if (appointment is null)
+            throw new InvalidOperationException("Appointment not found.");
+
+        if (appointment.ClientId != clientId)
+            throw new InvalidOperationException("You can cancel only your own appointment.");
+
+        if (appointment.Status == AppointmentStatus.Cancelled)
+            throw new InvalidOperationException("Appointment is already cancelled.");
+
+        if (appointment.Status == AppointmentStatus.Done)
+            throw new InvalidOperationException("Completed appointment cannot be cancelled.");
+
+        appointment.Status = AppointmentStatus.Cancelled;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new AppointmentResponse
+        {
+            Id = appointment.Id,
+            ServiceId = appointment.ServiceId,
+            ServiceName = appointment.Service.Name,
+            Date = appointment.Date,
+            Status = appointment.Status.ToString(),
+            Comment = appointment.Comment,
+            ClientId = appointment.ClientId,
+            MasterId = appointment.MasterId,
+            MasterName = null
+        };
+    }
+
+    public async Task<AppointmentResponse> RescheduleAsync(
+    int appointmentId,
+    string clientId,
+    RescheduleAppointmentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.MasterId))
+            throw new InvalidOperationException("Master is required.");
+
+        var appointment = await _dbContext.Appointments
+            .Include(x => x.Service)
+            .FirstOrDefaultAsync(x => x.Id == appointmentId);
+
+        if (appointment is null)
+            throw new InvalidOperationException("Appointment not found.");
+
+        if (appointment.ClientId != clientId)
+            throw new InvalidOperationException("You can reschedule only your own appointment.");
+
+        if (appointment.Status == AppointmentStatus.Cancelled)
+            throw new InvalidOperationException("Cancelled appointment cannot be rescheduled.");
+
+        if (appointment.Status == AppointmentStatus.Done)
+            throw new InvalidOperationException("Completed appointment cannot be rescheduled.");
+
+        var masterUser = await _userManager.FindByIdAsync(request.MasterId);
+
+        if (masterUser is null)
+            throw new InvalidOperationException("Master user not found.");
+
+        var isMaster = await _userManager.IsInRoleAsync(masterUser, "Master");
+
+        if (!isMaster)
+            throw new InvalidOperationException("Selected user is not a master.");
+
+        var available = await IsMasterAvailableAsync(
+            request.MasterId,
+            appointment.ServiceId,
+            request.Date,
+            appointment.Id);
+
+        if (!available)
+            throw new InvalidOperationException("Selected master is not available at the chosen time.");
+
+        appointment.MasterId = request.MasterId;
+        appointment.Date = request.Date;
+        appointment.Status = AppointmentStatus.Confirmed;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new AppointmentResponse
+        {
+            Id = appointment.Id,
+            ServiceId = appointment.ServiceId,
+            ServiceName = appointment.Service.Name,
+            Date = appointment.Date,
+            Status = appointment.Status.ToString(),
+            Comment = appointment.Comment,
+            ClientId = appointment.ClientId,
+            MasterId = appointment.MasterId,
+            MasterName = masterUser.FullName
+        };
+    }
 }

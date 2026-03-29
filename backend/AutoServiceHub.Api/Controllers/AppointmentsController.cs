@@ -108,4 +108,44 @@ public sealed class AppointmentsController : ControllerBase
         var result = await _appointmentService.GetAvailableMastersAsync(serviceId, date);
         return Ok(result);
     }
+
+    [Authorize(Roles = "Client")]
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var clientId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(clientId))
+            return Unauthorized();
+
+        try
+        {
+            var result = await _appointmentService.CancelAsync(id, clientId);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "Client")]
+    [HttpPost("{id:int}/reschedule")]
+    public async Task<IActionResult> Reschedule(int id, RescheduleAppointmentRequest request)
+    {
+        var clientId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(clientId))
+            return Unauthorized();
+
+        try
+        {
+            var result = await _appointmentService.RescheduleAsync(id, clientId, request);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
