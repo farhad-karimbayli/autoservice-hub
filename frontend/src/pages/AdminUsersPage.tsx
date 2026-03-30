@@ -3,7 +3,10 @@ import { api } from "../shared/api/client";
 
 type UserItem = {
     id: string;
-    email: string;
+    email?: string | null;
+    fullName?: string | null;
+    phoneNumber?: string | null;
+    role?: string | null;
 };
 
 const roles = ["Client", "Master", "Director", "Admin"];
@@ -28,7 +31,7 @@ export function AdminUsersPage() {
     async function assignRole(userId: string, role: string) {
         try {
             await api.post("/admin/assign-role", { userId, role });
-            alert(`Role ${role} assigned`);
+            await loadUsers();
         } catch {
             setError("Failed to assign role");
         }
@@ -42,8 +45,15 @@ export function AdminUsersPage() {
 
             <ul>
                 {items.map((item) => (
-                    <li key={item.id} style={{ marginBottom: 12 }}>
-                        <div>{item.email}</div>
+                    <li key={item.id} style={{ marginBottom: 16 }}>
+                        <div>
+                            <strong>{item.fullName?.trim() ? item.fullName : item.email}</strong>
+                        </div>
+                        <div>Email: {item.email ?? "-"}</div>
+                        <div>Phone: {item.phoneNumber ?? "-"}</div>
+                        <div>
+                            Current role: <strong>{item.role ?? "No role"}</strong>
+                        </div>
 
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                             {roles.map((role) => (

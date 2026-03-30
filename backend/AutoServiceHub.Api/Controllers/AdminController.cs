@@ -24,20 +24,29 @@ public sealed class AdminController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpGet("users")]
-    public IActionResult GetUsers()
+    public async Task<IActionResult> GetUsers()
     {
         var users = _userManager.Users
-            .Select(u => new
-            {
-                u.Id,
-                u.Email,
-                u.FullName,
-                u.PhoneNumber
-            })
             .OrderBy(x => x.Email)
             .ToList();
 
-        return Ok(users);
+        var result = new List<AdminUserResponse>();
+
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+
+            result.Add(new AdminUserResponse
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                PhoneNumber = user.PhoneNumber,
+                Role = roles.FirstOrDefault() ?? "No role"
+            });
+        }
+
+        return Ok(result);
     }
 
     [Authorize(Roles = "Admin")]
