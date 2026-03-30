@@ -14,6 +14,8 @@ import { InventoryPage } from "../pages/InventoryPage";
 import { MyPartsRequestsPage } from "../pages/MyPartsRequestsPage";
 import { AllPartsRequestsPage } from "../pages/AllPartsRequestsPage";
 import { ManageMastersPage } from "../pages/ManageMastersPage";
+import { MasterAppointmentsPage } from "../pages/MasterAppointmentsPage";
+import { DirectorAppointmentsPage } from "../pages/DirectorAppointmentsPage";
 
 export const router = createBrowserRouter([
     {
@@ -107,6 +109,24 @@ export const router = createBrowserRouter([
                 element: (
                     <ProtectedRoute roles={["Director", "Admin"]}>
                         <ManageMastersPage />
+                    </ProtectedRoute>
+                ),
+            },
+
+            {
+                path: "master/appointments",
+                element: (
+                    <ProtectedRoute roles={["Master"]}>
+                        <MasterAppointmentsPage />
+                    </ProtectedRoute>
+                ),
+            },
+            
+            {
+                path: "director/appointments",
+                element: (
+                    <ProtectedRoute roles={["Director", "Admin"]}>
+                        <DirectorAppointmentsPage />
                     </ProtectedRoute>
                 ),
             },

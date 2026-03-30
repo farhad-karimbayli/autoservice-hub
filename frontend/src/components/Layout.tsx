@@ -38,12 +38,15 @@ export function Layout() {
 
                     {role === "Master" && (
                         <>
+                            <Link to="/master/appointments">Master appointments</Link>
+                            <Link to="/inventory">Inventory</Link>
                             <Link to="/parts-requests/my">My parts requests</Link>
                         </>
                     )}
 
                     {(role === "Director" || role === "Admin") && (
                         <>
+                            <Link to="/director/appointments">Director appointments</Link>
                             <Link to="/manage/services">Manage services</Link>
                             <Link to="/manage/parts">Manage parts</Link>
                             <Link to="/manage/masters">Manage masters</Link>
