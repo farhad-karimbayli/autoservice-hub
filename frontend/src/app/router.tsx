@@ -13,6 +13,8 @@ import { CreateOrderPage } from "../pages/CreateOrderPage";
 import { InventoryPage } from "../pages/InventoryPage";
 import { MyPartsRequestsPage } from "../pages/MyPartsRequestsPage";
 import { AllPartsRequestsPage } from "../pages/AllPartsRequestsPage";
+import { ManageServicesPage } from "../pages/ManageServicesPage";
+import { ManagePartsPage } from "../pages/ManagePartsPage";
 import { ManageMastersPage } from "../pages/ManageMastersPage";
 import { MasterAppointmentsPage } from "../pages/MasterAppointmentsPage";
 import { DirectorAppointmentsPage } from "../pages/DirectorAppointmentsPage";
@@ -96,14 +98,21 @@ export const router = createBrowserRouter([
             },
 
             {
-                path: "admin/users",
+                path: "manage/services",
                 element: (
-                    <ProtectedRoute roles={["Admin"]}>
-                        <AdminUsersPage />
+                    <ProtectedRoute roles={["Director", "Admin"]}>
+                        <ManageServicesPage />
                     </ProtectedRoute>
                 ),
             },
-
+            {
+                path: "manage/parts",
+                element: (
+                    <ProtectedRoute roles={["Director", "Admin"]}>
+                        <ManagePartsPage />
+                    </ProtectedRoute>
+                ),
+            },
             {
                 path: "manage/masters",
                 element: (
@@ -121,12 +130,20 @@ export const router = createBrowserRouter([
                     </ProtectedRoute>
                 ),
             },
-            
             {
                 path: "director/appointments",
                 element: (
                     <ProtectedRoute roles={["Director", "Admin"]}>
                         <DirectorAppointmentsPage />
+                    </ProtectedRoute>
+                ),
+            },
+
+            {
+                path: "admin/users",
+                element: (
+                    <ProtectedRoute roles={["Admin"]}>
+                        <AdminUsersPage />
                     </ProtectedRoute>
                 ),
             },

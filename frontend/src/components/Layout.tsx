@@ -30,16 +30,10 @@ export function Layout() {
                         </>
                     )}
 
-                    {(role === "Director" || role === "Admin" || role === "Master") && (
-                        <>
-                            <Link to="/inventory">Inventory</Link>
-                        </>
-                    )}
-
                     {role === "Master" && (
                         <>
-                            <Link to="/master/appointments">Master appointments</Link>
                             <Link to="/inventory">Inventory</Link>
+                            <Link to="/master/appointments">Master appointments</Link>
                             <Link to="/parts-requests/my">My parts requests</Link>
                         </>
                     )}
@@ -59,7 +53,9 @@ export function Layout() {
                 </nav>
 
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                    <span>Role: {role ?? "Guest"}</span>
+          <span>
+            Current role: <strong>{role ?? "Guest"}</strong>
+          </span>
 
                     {!token ? (
                         <>
