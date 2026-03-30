@@ -29,6 +29,12 @@ public sealed class InventoryService
 
     public async Task<PartResponse> CreatePartAsync(CreatePartRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Part name is required.");
+
+        if (request.Price <= 0)
+            throw new InvalidOperationException("Price must be greater than zero.");
+
         var part = new Part
         {
             Name = request.Name.Trim(),
@@ -120,5 +126,42 @@ public sealed class InventoryService
                 Quantity = x.Quantity
             })
             .ToListAsync();
+    }
+
+    public async Task<PartResponse> UpdatePartAsync(int id, UpdatePartRequest request)
+    {
+        var part = await _dbContext.Parts.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (part is null)
+            throw new InvalidOperationException("Part not found.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Part name is required.");
+
+        if (request.Price <= 0)
+            throw new InvalidOperationException("Price must be greater than zero.");
+
+        part.Name = request.Name.Trim();
+        part.Price = request.Price;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new PartResponse
+        {
+            Id = part.Id,
+            Name = part.Name,
+            Price = part.Price
+        };
+    }
+
+    public async Task DeletePartAsync(int id)
+    {
+        var part = await _dbContext.Parts.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (part is null)
+            throw new InvalidOperationException("Part not found.");
+
+        _dbContext.Parts.Remove(part);
+        await _dbContext.SaveChangesAsync();
     }
 }

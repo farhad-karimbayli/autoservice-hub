@@ -57,4 +57,46 @@ public sealed class ServicesService
             DurationMinutes = entity.DurationMinutes
         };
     }
+
+    public async Task<ServiceResponse> UpdateAsync(int id, UpdateServiceRequest request)
+    {
+        var entity = await _dbContext.Services.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (entity is null)
+            throw new InvalidOperationException("Service not found.");
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new InvalidOperationException("Service name is required.");
+
+        if (request.Price < 0)
+            throw new InvalidOperationException("Price cannot be negative.");
+
+        if (request.DurationMinutes <= 0)
+            throw new InvalidOperationException("Duration must be greater than zero.");
+
+        entity.Name = request.Name.Trim();
+        entity.Price = request.Price;
+        entity.DurationMinutes = request.DurationMinutes;
+
+        await _dbContext.SaveChangesAsync();
+
+        return new ServiceResponse
+        {
+            Id = entity.Id,
+            Name = entity.Name,
+            Price = entity.Price,
+            DurationMinutes = entity.DurationMinutes
+        };
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var entity = await _dbContext.Services.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (entity is null)
+            throw new InvalidOperationException("Service not found.");
+
+        _dbContext.Services.Remove(entity);
+        await _dbContext.SaveChangesAsync();
+    }
 }

@@ -58,6 +58,7 @@ export function ManageMastersPage() {
     const [dayOfWeek, setDayOfWeek] = useState("1");
     const [startTime, setStartTime] = useState("09:00:00");
     const [endTime, setEndTime] = useState("18:00:00");
+    const [editingWorkingHourId, setEditingWorkingHourId] = useState<number | null>(null);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -138,7 +139,23 @@ export function ManageMastersPage() {
         }
     }
 
-    async function addWorkingHours(e: React.FormEvent) {
+    function resetWorkingHoursForm() {
+        setEditingWorkingHourId(null);
+        setDayOfWeek("1");
+        setStartTime("09:00:00");
+        setEndTime("18:00:00");
+    }
+
+    function startEditWorkingHour(item: WorkingHourItem) {
+        setEditingWorkingHourId(item.id);
+        setDayOfWeek(String(item.dayOfWeek));
+        setStartTime(item.startTime);
+        setEndTime(item.endTime);
+        setError("");
+        setSuccess("");
+    }
+
+    async function saveWorkingHours(e: React.FormEvent) {
         e.preventDefault();
 
         if (!selectedMasterId) {
@@ -150,16 +167,44 @@ export function ManageMastersPage() {
         setSuccess("");
 
         try {
-            await api.post(`/admin/masters/${selectedMasterId}/working-hours`, {
-                dayOfWeek: Number(dayOfWeek),
-                startTime,
-                endTime,
-            });
+            if (editingWorkingHourId === null) {
+                await api.post(`/admin/masters/${selectedMasterId}/working-hours`, {
+                    dayOfWeek: Number(dayOfWeek),
+                    startTime,
+                    endTime,
+                });
+                setSuccess("Working hours added successfully");
+            } else {
+                await api.put(`/admin/masters/working-hours/${editingWorkingHourId}`, {
+                    dayOfWeek: Number(dayOfWeek),
+                    startTime,
+                    endTime,
+                });
+                setSuccess("Working hours updated successfully");
+            }
 
-            setSuccess("Working hours added successfully");
+            resetWorkingHoursForm();
             await loadMasterData(selectedMasterId);
         } catch (error) {
-            setError(`Failed to add working hours: ${getErrorMessage(error, "unknown error")}`);
+            setError(`Failed to save working hours: ${getErrorMessage(error, "unknown error")}`);
+        }
+    }
+
+    async function deleteWorkingHour(id: number) {
+        setError("");
+        setSuccess("");
+
+        try {
+            await api.delete(`/admin/masters/working-hours/${id}`);
+
+            if (editingWorkingHourId === id) {
+                resetWorkingHoursForm();
+            }
+
+            setSuccess("Working hour deleted successfully");
+            await loadMasterData(selectedMasterId);
+        } catch (error) {
+            setError(`Failed to delete working hour: ${getErrorMessage(error, "unknown error")}`);
         }
     }
 
@@ -189,7 +234,11 @@ export function ManageMastersPage() {
 
                     <select
                         value={selectedMasterId}
-                        onChange={(e) => setSelectedMasterId(e.target.value)}
+                        onChange={(e) => {
+                            setSuccess("");
+                            setSelectedMasterId(e.target.value);
+                            resetWorkingHoursForm();
+                        }}
                     >
                         <option value="">Select master</option>
                         {users.map((user) => (
@@ -200,9 +249,11 @@ export function ManageMastersPage() {
                     </select>
 
                     {selectedMaster && (
-                        <p>
-                            Selected: {selectedMaster.fullName ?? selectedMaster.email}
-                        </p>
+                        <div style={{ marginTop: 8 }}>
+                            <div><strong>Name:</strong> {selectedMaster.fullName ?? "-"}</div>
+                            <div><strong>Email:</strong> {selectedMaster.email}</div>
+                            <div><strong>Phone:</strong> {selectedMaster.phoneNumber ?? "-"}</div>
+                        </div>
                     )}
                 </section>
 
@@ -243,10 +294,10 @@ export function ManageMastersPage() {
                 </section>
 
                 <section>
-                    <h3>Add working hours</h3>
+                    <h3>{editingWorkingHourId === null ? "Add working hours" : "Edit working hours"}</h3>
 
                     <form
-                        onSubmit={addWorkingHours}
+                        onSubmit={saveWorkingHours}
                         style={{ display: "grid", gap: 12, maxWidth: 360 }}
                     >
                         <select value={dayOfWeek} onChange={(e) => setDayOfWeek(e.target.value)}>
@@ -271,7 +322,17 @@ export function ManageMastersPage() {
                             onChange={(e) => setEndTime(e.target.value)}
                         />
 
-                        <button type="submit">Add working hours</button>
+                        <div style={{ display: "flex", gap: 8 }}>
+                            <button type="submit">
+                                {editingWorkingHourId === null ? "Add working hours" : "Update working hours"}
+                            </button>
+
+                            {editingWorkingHourId !== null && (
+                                <button type="button" onClick={resetWorkingHoursForm}>
+                                    Cancel edit
+                                </button>
+                            )}
+                        </div>
                     </form>
 
                     <h4>Current working hours</h4>
@@ -280,8 +341,16 @@ export function ManageMastersPage() {
                     ) : (
                         <ul>
                             {workingHours.map((item) => (
-                                <li key={item.id}>
+                                <li key={item.id} style={{ marginBottom: 8 }}>
                                     {days.find((d) => d.value === item.dayOfWeek)?.label} — {item.startTime} - {item.endTime}
+                                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                                        <button type="button" onClick={() => startEditWorkingHour(item)}>
+                                            Edit
+                                        </button>
+                                        <button type="button" onClick={() => deleteWorkingHour(item.id)}>
+                                            Delete
+                                        </button>
+                                    </div>
                                 </li>
                             ))}
                         </ul>

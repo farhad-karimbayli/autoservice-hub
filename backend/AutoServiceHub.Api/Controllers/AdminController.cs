@@ -207,4 +207,28 @@ public sealed class AdminController : ControllerBase
 
         return Ok(new { message = "Working hour deleted successfully." });
     }
+
+    [Authorize(Roles = "Admin,Director")]
+    [HttpPut("masters/working-hours/{id:int}")]
+    public async Task<IActionResult> UpdateWorkingHour(int id, UpdateWorkingHourRequest request)
+    {
+        var entity = await _dbContext.MasterWorkingHours.FirstOrDefaultAsync(x => x.Id == id);
+
+        if (entity == null)
+            return NotFound(new { message = "Working hour not found." });
+
+        if (request.DayOfWeek < 1 || request.DayOfWeek > 7)
+            return BadRequest(new { message = "DayOfWeek must be between 1 and 7." });
+
+        if (request.StartTime >= request.EndTime)
+            return BadRequest(new { message = "StartTime must be earlier than EndTime." });
+
+        entity.DayOfWeek = request.DayOfWeek;
+        entity.StartTime = request.StartTime;
+        entity.EndTime = request.EndTime;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new { message = "Working hour updated successfully." });
+    }
 }
