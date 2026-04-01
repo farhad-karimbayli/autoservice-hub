@@ -2,33 +2,45 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { api } from "../shared/api/client";
 
-type PartItem = {
-    id: number;
-    name: string;
-    price: number;
-};
-
-type InventoryItem = {
+type CatalogPart = {
     partId: number;
     partName: string;
     partPrice: number;
     quantity: number;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 export function CreateOrderPage() {
     const navigate = useNavigate();
 
-    const [items, setItems] = useState<InventoryItem[]>([]);
+    const [items, setItems] = useState<CatalogPart[]>([]);
     const [selectedPartId, setSelectedPartId] = useState("");
     const [quantity, setQuantity] = useState("1");
     const [cart, setCart] = useState<Array<{ partId: number; quantity: number; partName: string }>>([]);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    async function loadCatalog() {
+        setError("");
+
+        try {
+            const res = await api.get<CatalogPart[]>("/catalog/parts");
+            setItems(res.data);
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load parts catalog"));
+        }
+    }
+
     useEffect(() => {
-        api.get<InventoryItem[]>("/inventory")
-            .then((res) => setItems(res.data))
-            .catch(() => setError("Failed to load inventory"));
+        loadCatalog();
     }, []);
 
     function addToCart() {
@@ -36,11 +48,20 @@ export function CreateOrderPage() {
 
         const partId = Number(selectedPartId);
         const qty = Number(quantity);
-
         const item = items.find((x) => x.partId === partId);
 
-        if (!item || qty <= 0) {
-            setError("Select a valid part and quantity");
+        if (!item) {
+            setError("Select a part");
+            return;
+        }
+
+        if (qty <= 0) {
+            setError("Quantity must be greater than zero");
+            return;
+        }
+
+        if (qty > item.quantity) {
+            setError("Requested quantity exceeds stock");
             return;
         }
 
@@ -49,7 +70,9 @@ export function CreateOrderPage() {
 
             if (existing) {
                 return prev.map((x) =>
-                    x.partId === partId ? { ...x, quantity: x.quantity + qty } : x
+                    x.partId === partId
+                        ? { ...x, quantity: x.quantity + qty }
+                        : x
                 );
             }
 
@@ -61,6 +84,11 @@ export function CreateOrderPage() {
     }
 
     async function submitOrder() {
+        if (cart.length === 0) {
+            setError("Cart is empty");
+            return;
+        }
+
         setError("");
         setSuccess("");
 
@@ -74,9 +102,10 @@ export function CreateOrderPage() {
 
             setSuccess("Order created successfully");
             setCart([]);
+            await loadCatalog();
             setTimeout(() => navigate("/orders/my"), 700);
-        } catch {
-            setError("Failed to create order");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to create order"));
         }
     }
 
