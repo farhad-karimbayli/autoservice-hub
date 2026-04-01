@@ -31,12 +31,18 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.PhoneNumber))
             return BadRequest(new { message = "Phone number is required." });
 
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { message = "Email is required." });
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Password is required." });
+
         var user = new AppUser
         {
             FullName = request.FullName.Trim(),
             PhoneNumber = request.PhoneNumber.Trim(),
-            Email = request.Email,
-            UserName = request.Email
+            Email = request.Email.Trim(),
+            UserName = request.Email.Trim()
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
