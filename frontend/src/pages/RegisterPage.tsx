@@ -78,7 +78,7 @@ export function RegisterPage() {
                 meResponse.data.claims.find((x) => x.type === "role")?.value ??
                 "Client";
 
-            login(token, roleClaim);
+            login(token, roleClaim, fullNameClaim);
             navigate("/");
         } catch (error) {
             setError(getErrorMessage(error, "Registration failed"));

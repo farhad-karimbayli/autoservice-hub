@@ -1,8 +1,17 @@
+import { useAuth } from "../shared/auth/AuthContext";
+
 export function HomePage() {
+    const { fullName } = useAuth();
+
     return (
         <div>
-            <h1>Welcome</h1>
-            <p>Frontend for AutoService Hub is now connected step by step.</p>
+            <h2>
+                {fullName ? `Welcome, ${fullName}!` : "Welcome!"}
+            </h2>
+
+            <p>
+                This is AutoService Hub — manage services, appointments and parts easily.
+            </p>
         </div>
     );
 }

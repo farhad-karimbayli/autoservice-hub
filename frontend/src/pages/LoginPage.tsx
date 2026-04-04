@@ -45,7 +45,12 @@ export function LoginPage() {
                 meResponse.data.claims.find((x) => x.type === "role")?.value ??
                 "Client";
 
-            login(token, roleClaim);
+            const fullNameClaim =
+                meResponse.data.claims.find((x) => x.type === "fullName")?.value ??
+                meResponse.data.claims.find((x) => x.type.endsWith("/name"))?.value ??
+                "User";
+
+            login(token, roleClaim, fullNameClaim);
             navigate("/");
         } catch {
             setError("Invalid email or password");
