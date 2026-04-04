@@ -50,29 +50,16 @@ export function CreateOrderPage() {
         const qty = Number(quantity);
         const item = items.find((x) => x.partId === partId);
 
-        if (!item) {
-            setError("Select a part");
-            return;
-        }
-
-        if (qty <= 0) {
-            setError("Quantity must be greater than zero");
-            return;
-        }
-
-        if (qty > item.quantity) {
-            setError("Requested quantity exceeds stock");
-            return;
-        }
+        if (!item) return setError("Select a part");
+        if (qty <= 0) return setError("Quantity must be greater than zero");
+        if (qty > item.quantity) return setError("Requested quantity exceeds stock");
 
         setCart((prev) => {
             const existing = prev.find((x) => x.partId === partId);
 
             if (existing) {
                 return prev.map((x) =>
-                    x.partId === partId
-                        ? { ...x, quantity: x.quantity + qty }
-                        : x
+                    x.partId === partId ? { ...x, quantity: x.quantity + qty } : x
                 );
             }
 
@@ -110,10 +97,14 @@ export function CreateOrderPage() {
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Buy parts</h2>
+            <p className="meta">Choose available parts from the catalog and add them to your cart.</p>
 
-            <div style={{ display: "grid", gap: 12, maxWidth: 520, marginBottom: 24 }}>
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
+
+            <div className="form-grid" style={{ marginBottom: 24 }}>
                 <select value={selectedPartId} onChange={(e) => setSelectedPartId(e.target.value)}>
                     <option value="">Select part</option>
                     {items.map((item) => (
@@ -138,23 +129,22 @@ export function CreateOrderPage() {
             <h3>Cart</h3>
 
             {cart.length === 0 ? (
-                <p>Cart is empty</p>
+                <p className="meta">Cart is empty.</p>
             ) : (
                 <>
-                    <ul>
+                    <ul className="list-reset list-stack">
                         {cart.map((item) => (
-                            <li key={item.partId}>
+                            <li key={item.partId} className="list-item">
                                 {item.partName} — quantity: {item.quantity}
                             </li>
                         ))}
                     </ul>
 
-                    <button onClick={submitOrder}>Submit order</button>
+                    <div className="inline-actions" style={{ marginTop: 16 }}>
+                        <button onClick={submitOrder}>Submit order</button>
+                    </div>
                 </>
             )}
-
-            {error && <p>{error}</p>}
-            {success && <p>{success}</p>}
         </div>
     );
 }

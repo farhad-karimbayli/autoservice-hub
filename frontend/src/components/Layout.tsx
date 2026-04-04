@@ -5,72 +5,76 @@ export function Layout() {
     const { role, fullName, logout, token } = useAuth();
 
     return (
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
-            <header style={{ marginBottom: 24 }}>
-                <h1>AutoService Hub</h1>
+        <div className="app-shell">
+            <header className="topbar">
+                <div className="brand-row">
+                    <div className="brand-block">
+                        <h1>AutoService Hub</h1>
+                        <p>Appointments, inventory, parts and service management</p>
+                    </div>
 
-                <nav
-                    style={{
-                        display: "flex",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        marginBottom: 12,
-                    }}
-                >
-                    <Link to="/">Home</Link>
+                    <div className="user-chip">
+                        {token
+                            ? `${fullName ?? "User"} (${role ?? "Unknown"})`
+                            : "Guest mode"}
+                    </div>
+                </div>
 
-                    {token && <Link to="/services">Services</Link>}
+                <nav className="nav-grid">
+                    <Link className="nav-link" to="/">Home</Link>
+
+                    {token && <Link className="nav-link" to="/services">Services</Link>}
 
                     {role === "Client" && (
                         <>
-                            <Link to="/appointments/create">Book service</Link>
-                            <Link to="/appointments/my">My appointments</Link>
-                            <Link to="/orders/create">Buy parts</Link>
-                            <Link to="/orders/my">My orders</Link>
+                            <Link className="nav-link" to="/appointments/create">Book service</Link>
+                            <Link className="nav-link" to="/appointments/my">My appointments</Link>
+                            <Link className="nav-link" to="/orders/create">Buy parts</Link>
+                            <Link className="nav-link" to="/orders/my">My orders</Link>
                         </>
                     )}
 
                     {role === "Master" && (
                         <>
-                            <Link to="/inventory">Inventory</Link>
-                            <Link to="/master/appointments">Master appointments</Link>
-                            <Link to="/parts-requests/my">My parts requests</Link>
+                            <Link className="nav-link" to="/inventory">Inventory</Link>
+                            <Link className="nav-link" to="/master/appointments">Master appointments</Link>
+                            <Link className="nav-link" to="/parts-requests/my">My parts requests</Link>
                         </>
                     )}
 
                     {(role === "Director" || role === "Admin") && (
                         <>
-                            <Link to="/director/appointments">Director appointments</Link>
-                            <Link to="/manage/services">Manage services</Link>
-                            <Link to="/manage/parts">Manage parts</Link>
-                            <Link to="/manage/masters">Manage masters</Link>
-                            <Link to="/inventory">Inventory</Link>
-                            <Link to="/parts-requests">Parts requests</Link>
+                            <Link className="nav-link" to="/director/appointments">Director appointments</Link>
+                            <Link className="nav-link" to="/manage/services">Manage services</Link>
+                            <Link className="nav-link" to="/manage/parts">Manage parts</Link>
+                            <Link className="nav-link" to="/manage/masters">Manage masters</Link>
+                            <Link className="nav-link" to="/inventory">Inventory</Link>
+                            <Link className="nav-link" to="/parts-requests">Parts requests</Link>
                         </>
                     )}
 
-                    {role === "Admin" && <Link to="/admin/users">Admin users</Link>}
+                    {role === "Admin" && (
+                        <Link className="nav-link" to="/admin/users">Admin users</Link>
+                    )}
                 </nav>
 
-                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <span>
-            {token
-                ? `Signed in as: ${fullName ?? "User"} (${role ?? "Unknown"})`
-                : "Not signed in"}
-          </span>
+                <div className="actions-row">
+                    <div className="status-text">
+                        {token ? "You are signed in and ready to work." : "Please login or register."}
+                    </div>
 
                     {!token ? (
-                        <>
-                            <Link to="/login">Login</Link>
-                            <Link to="/register">Register</Link>
-                        </>
+                        <div className="inline-actions">
+                            <Link className="nav-link" to="/login">Login</Link>
+                            <Link className="nav-link" to="/register">Register</Link>
+                        </div>
                     ) : (
-                        <button onClick={logout}>Logout</button>
+                        <button className="secondary" onClick={logout}>Logout</button>
                     )}
                 </div>
             </header>
 
-            <main>
+            <main className="page-card">
                 <Outlet />
             </main>
         </div>

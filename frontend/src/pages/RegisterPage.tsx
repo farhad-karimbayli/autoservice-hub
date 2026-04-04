@@ -81,7 +81,7 @@ export function RegisterPage() {
             const fullNameClaim =
                 meResponse.data.claims.find((x) => x.type === "fullName")?.value ??
                 meResponse.data.claims.find((x) => x.type.endsWith("/name"))?.value ??
-                "User";
+                fullName;
 
             login(token, roleClaim, fullNameClaim);
             navigate("/");
@@ -91,42 +91,52 @@ export function RegisterPage() {
     }
 
     return (
-        <div>
-            <h2>Register</h2>
+        <div
+            style={{
+                maxWidth: 560,
+                margin: "0 auto",
+            }}
+        >
+            <div className="section-card">
+                <h2>Register</h2>
+                <p className="meta">
+                    Create a new account to book services, manage appointments and buy parts.
+                </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
-                <input
-                    type="text"
-                    placeholder="Full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                />
+                {error && <div className="message error">{error}</div>}
 
-                <input
-                    type="text"
-                    placeholder="Phone number"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                />
+                <form onSubmit={handleSubmit} className="form-grid">
+                    <input
+                        type="text"
+                        placeholder="Full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                    />
 
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
+                    <input
+                        type="text"
+                        placeholder="Phone number"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                    />
 
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
 
-                <button type="submit">Register</button>
-            </form>
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
 
-            {error && <p>{error}</p>}
+                    <button type="submit">Create account</button>
+                </form>
+            </div>
         </div>
     );
 }

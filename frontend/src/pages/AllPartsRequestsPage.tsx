@@ -13,16 +13,42 @@ type PartsRequestItem = {
 
 const statuses = ["Created", "Approved", "Rejected", "Ordered", "Received"];
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
+function getStatusClass(status: string) {
+    switch (status) {
+        case "Approved":
+        case "Received":
+            return "badge success";
+        case "Rejected":
+            return "badge danger";
+        case "Ordered":
+            return "badge warning";
+        default:
+            return "badge";
+    }
+}
+
 export function AllPartsRequestsPage() {
     const [items, setItems] = useState<PartsRequestItem[]>([]);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     async function loadData() {
+        setError("");
+
         try {
             const res = await api.get<PartsRequestItem[]>("/parts-requests");
             setItems(res.data);
-        } catch {
-            setError("Failed to load parts requests");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load parts requests"));
         }
     }
 
@@ -31,41 +57,86 @@ export function AllPartsRequestsPage() {
     }, []);
 
     async function updateStatus(id: number, status: string) {
+        setError("");
+        setSuccess("");
+
         try {
             await api.post(`/parts-requests/${id}/status`, { status });
+            setSuccess(`Request #${id} updated to ${status}`);
             await loadData();
-        } catch {
-            setError("Failed to update status");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to update status"));
         }
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>All parts requests</h2>
+            <p className="meta">
+                Review requests created by masters and update their status.
+            </p>
 
-            {error && <p>{error}</p>}
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
-            <ul>
-                {items.map((item) => (
-                    <li key={item.id} style={{ marginBottom: 12 }}>
-                        <div>
-                            #{item.id} — {item.partName} — qty: {item.quantity} — {item.status}
-                        </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                            {statuses.map((status) => (
-                                <button
-                                    key={status}
-                                    type="button"
-                                    onClick={() => updateStatus(item.id, status)}
+            {items.length === 0 ? (
+                <p className="meta">No parts requests found.</p>
+            ) : (
+                <ul className="list-reset list-stack">
+                    {items.map((item) => (
+                        <li key={item.id} className="list-item">
+                            <div style={{ display: "grid", gap: 8 }}>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                    }}
                                 >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
-                    </li>
-                ))}
-            </ul>
+                                    <strong>Request #{item.id}</strong>
+                                    <span className={getStatusClass(item.status)}>{item.status}</span>
+                                </div>
+
+                                <div>
+                                    <strong>Part:</strong> {item.partName}
+                                </div>
+
+                                <div>
+                                    <strong>Quantity:</strong> {item.quantity}
+                                </div>
+
+                                <div>
+                                    <strong>Master ID:</strong> {item.masterId}
+                                </div>
+
+                                <div className="meta">
+                                    Created: {new Date(item.createdAt).toLocaleString()}
+                                </div>
+
+                                {item.comment && (
+                                    <div>
+                                        <strong>Comment:</strong> {item.comment}
+                                    </div>
+                                )}
+
+                                <div className="inline-actions">
+                                    {statuses.map((status) => (
+                                        <button
+                                            key={status}
+                                            type="button"
+                                            className={status === "Rejected" ? "danger" : undefined}
+                                            onClick={() => updateStatus(item.id, status)}
+                                        >
+                                            Set {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }

@@ -28,12 +28,10 @@ export function CreateAppointmentPage() {
 
     const [services, setServices] = useState<ServiceItem[]>([]);
     const [masters, setMasters] = useState<AvailableMaster[]>([]);
-
     const [serviceId, setServiceId] = useState("");
     const [date, setDate] = useState("");
     const [masterId, setMasterId] = useState("");
     const [comment, setComment] = useState("");
-
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loadingMasters, setLoadingMasters] = useState(false);
@@ -41,9 +39,7 @@ export function CreateAppointmentPage() {
     useEffect(() => {
         api.get<ServiceItem[]>("/services")
             .then((res) => setServices(res.data))
-            .catch((error) =>
-                setError(getErrorMessage(error, "Failed to load services"))
-            );
+            .catch((error) => setError(getErrorMessage(error, "Failed to load services")));
     }, []);
 
     async function loadMasters() {
@@ -51,9 +47,7 @@ export function CreateAppointmentPage() {
         setMasters([]);
         setMasterId("");
 
-        if (!serviceId || !date) {
-            return;
-        }
+        if (!serviceId || !date) return;
 
         setLoadingMasters(true);
 
@@ -82,20 +76,9 @@ export function CreateAppointmentPage() {
         setError("");
         setSuccess("");
 
-        if (!serviceId) {
-            setError("Select a service");
-            return;
-        }
-
-        if (!date) {
-            setError("Select date and time");
-            return;
-        }
-
-        if (!masterId) {
-            setError("Select a master");
-            return;
-        }
+        if (!serviceId) return setError("Select a service");
+        if (!date) return setError("Select date and time");
+        if (!masterId) return setError("Select a master");
 
         try {
             await api.post("/appointments", {
@@ -113,10 +96,14 @@ export function CreateAppointmentPage() {
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Book service</h2>
+            <p className="meta">Choose a service, time and available master.</p>
 
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 480 }}>
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
+
+            <form onSubmit={handleSubmit} className="form-grid">
                 <select value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
                     <option value="">Select service</option>
                     {services.map((item) => (
@@ -151,13 +138,10 @@ export function CreateAppointmentPage() {
                 <button type="submit">Create appointment</button>
             </form>
 
-            {loadingMasters && <p>Loading available masters...</p>}
+            {loadingMasters && <p className="meta">Loading available masters...</p>}
             {!loadingMasters && masters.length === 0 && serviceId && date && (
-                <p>No available masters for this time slot.</p>
+                <p className="meta">No available masters for this time slot.</p>
             )}
-
-            {error && <p>{error}</p>}
-            {success && <p>{success}</p>}
         </div>
     );
 }

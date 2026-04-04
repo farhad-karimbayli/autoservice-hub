@@ -7,19 +7,31 @@ type PartItem = {
     price: number;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 export function ManagePartsPage() {
     const [items, setItems] = useState<PartItem[]>([]);
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     async function loadData() {
+        setError("");
+
         try {
             const res = await api.get<PartItem[]>("/parts");
             setItems(res.data);
-        } catch {
-            setError("Failed to load parts");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load parts"));
         }
     }
 
@@ -32,6 +44,7 @@ export function ManagePartsPage() {
         setName(item.name);
         setPrice(String(item.price));
         setError("");
+        setSuccess("");
     }
 
     function resetForm() {
@@ -43,6 +56,7 @@ export function ManagePartsPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+        setSuccess("");
 
         if (!name.trim()) {
             setError("Part name is required");
@@ -60,68 +74,119 @@ export function ManagePartsPage() {
                     name,
                     price: Number(price),
                 });
+
+                setSuccess("Part created successfully");
             } else {
                 await api.put(`/parts/${editingId}`, {
                     name,
                     price: Number(price),
                 });
+
+                setSuccess("Part updated successfully");
             }
 
             resetForm();
             await loadData();
-        } catch (err: any) {
-            setError(err?.response?.data?.message ?? "Failed to save part");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to save part"));
         }
     }
 
     async function deletePart(id: number) {
         setError("");
+        setSuccess("");
 
         try {
             await api.delete(`/parts/${id}`);
+
             if (editingId === id) {
                 resetForm();
             }
+
+            setSuccess("Part deleted successfully");
             await loadData();
-        } catch (err: any) {
-            setError(err?.response?.data?.message ?? "Failed to delete part");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to delete part"));
         }
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Manage parts</h2>
+            <p className="meta">
+                Create, update and delete part types used in the inventory and catalog.
+            </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Part name" />
-                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" />
-                <div style={{ display: "flex", gap: 8 }}>
-                    <button type="submit">{editingId === null ? "Create part" : "Update part"}</button>
-                    {editingId !== null && (
-                        <button type="button" onClick={resetForm}>
-                            Cancel edit
-                        </button>
-                    )}
-                </div>
-            </form>
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
-            {error && <p>{error}</p>}
+            <div className="grid-2">
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>
+                        {editingId === null ? "Create part" : "Edit part"}
+                    </h3>
 
-            <ul>
-                {items.map((item) => (
-                    <li key={item.id} style={{ marginBottom: 12 }}>
-                        {item.name} — {item.price} AZN
-                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                            <button type="button" onClick={() => startEdit(item)}>
-                                Edit
+                    <form onSubmit={handleSubmit} className="form-grid">
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Part name"
+                        />
+
+                        <input
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder="Price"
+                        />
+
+                        <div className="inline-actions">
+                            <button type="submit">
+                                {editingId === null ? "Create part" : "Update part"}
                             </button>
-                            <button type="button" onClick={() => deletePart(item.id)}>
-                                Delete
-                            </button>
+
+                            {editingId !== null && (
+                                <button type="button" className="secondary" onClick={resetForm}>
+                                    Cancel edit
+                                </button>
+                            )}
                         </div>
-                    </li>
-                ))}
-            </ul>
+                    </form>
+                </section>
+
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>Current parts</h3>
+
+                    {items.length === 0 ? (
+                        <p className="meta">No parts found.</p>
+                    ) : (
+                        <ul className="list-reset list-stack">
+                            {items.map((item) => (
+                                <li key={item.id} className="list-item">
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                                            <strong>{item.name}</strong>
+                                            <span className="badge">{item.price} AZN</span>
+                                        </div>
+
+                                        <div className="inline-actions">
+                                            <button type="button" onClick={() => startEdit(item)}>
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="danger"
+                                                onClick={() => deletePart(item.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

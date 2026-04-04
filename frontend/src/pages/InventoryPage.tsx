@@ -15,6 +15,15 @@ type PartItem = {
     price: number;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 export function InventoryPage() {
     const { role } = useAuth();
 
@@ -23,28 +32,47 @@ export function InventoryPage() {
     const [partId, setPartId] = useState("");
     const [quantity, setQuantity] = useState("1");
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     async function loadData() {
-        try {
-            const [inventoryRes, partsRes] = await Promise.all([
-                api.get<InventoryItem[]>("/inventory"),
-                api.get<PartItem[]>("/parts"),
-            ]);
+        setError("");
 
+        try {
+            const inventoryRes = await api.get<InventoryItem[]>("/inventory");
             setItems(inventoryRes.data);
-            setParts(partsRes.data);
-        } catch {
-            setError("Failed to load inventory");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load inventory"));
+            return;
+        }
+
+        if (role === "Director" || role === "Admin") {
+            try {
+                const partsRes = await api.get<PartItem[]>("/parts");
+                setParts(partsRes.data);
+            } catch (error) {
+                setError(getErrorMessage(error, "Failed to load parts"));
+            }
         }
     }
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [role]);
 
     async function addInventory(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+        setSuccess("");
+
+        if (!partId) {
+            setError("Select a part");
+            return;
+        }
+
+        if (!quantity || Number(quantity) <= 0) {
+            setError("Quantity must be greater than zero");
+            return;
+        }
 
         try {
             await api.post("/inventory/add", {
@@ -52,52 +80,80 @@ export function InventoryPage() {
                 quantity: Number(quantity),
             });
 
+            setSuccess("Inventory updated successfully");
             setPartId("");
             setQuantity("1");
             await loadData();
-        } catch {
-            setError("Failed to add inventory");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to add inventory"));
         }
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Inventory</h2>
+            <p className="meta">
+                View current stock and, if allowed by your role, add new quantity to the warehouse.
+            </p>
+
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
             {(role === "Director" || role === "Admin") && (
-                <form
-                    onSubmit={addInventory}
-                    style={{ display: "grid", gap: 12, maxWidth: 420, marginBottom: 24 }}
-                >
-                    <select value={partId} onChange={(e) => setPartId(e.target.value)}>
-                        <option value="">Select part</option>
-                        {parts.map((part) => (
-                            <option key={part.id} value={part.id}>
-                                {part.name}
-                            </option>
-                        ))}
-                    </select>
+                <section className="section-card" style={{ marginBottom: 20 }}>
+                    <h3 style={{ marginTop: 0 }}>Add inventory</h3>
 
-                    <input
-                        type="number"
-                        min="1"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                    />
+                    <form onSubmit={addInventory} className="form-grid">
+                        <select value={partId} onChange={(e) => setPartId(e.target.value)}>
+                            <option value="">Select part</option>
+                            {parts.map((part) => (
+                                <option key={part.id} value={part.id}>
+                                    {part.name} — {part.price} AZN
+                                </option>
+                            ))}
+                        </select>
 
-                    <button type="submit">Add to inventory</button>
-                </form>
+                        <input
+                            type="number"
+                            min="1"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                        />
+
+                        <button type="submit">Add to inventory</button>
+                    </form>
+                </section>
             )}
 
-            {error && <p>{error}</p>}
+            <section className="section-card">
+                <h3 style={{ marginTop: 0 }}>Current stock</h3>
 
-            <ul>
-                {items.map((item) => (
-                    <li key={item.partId}>
-                        {item.partName} — {item.partPrice} AZN — in stock: {item.quantity}
-                    </li>
-                ))}
-            </ul>
+                {items.length === 0 ? (
+                    <p className="meta">Inventory is empty.</p>
+                ) : (
+                    <ul className="list-reset list-stack">
+                        {items.map((item) => (
+                            <li key={item.partId} className="list-item">
+                                <div style={{ display: "grid", gap: 8 }}>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: 12,
+                                            flexWrap: "wrap",
+                                        }}
+                                    >
+                                        <strong>{item.partName}</strong>
+                                        <span className="badge">{item.quantity} in stock</span>
+                                    </div>
+
+                                    <div className="meta">Price: {item.partPrice} AZN</div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 }

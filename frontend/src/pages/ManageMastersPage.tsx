@@ -173,6 +173,7 @@ export function ManageMastersPage() {
                     startTime,
                     endTime,
                 });
+
                 setSuccess("Working hours added successfully");
             } else {
                 await api.put(`/admin/masters/working-hours/${editingWorkingHourId}`, {
@@ -180,6 +181,7 @@ export function ManageMastersPage() {
                     startTime,
                     endTime,
                 });
+
                 setSuccess("Working hours updated successfully");
             }
 
@@ -222,84 +224,101 @@ export function ManageMastersPage() {
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Manage masters</h2>
+            <p className="meta">
+                Assign services to masters and configure their working schedule.
+            </p>
 
-            {error && <p>{error}</p>}
-            {success && <p>{success}</p>}
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
-            <div style={{ display: "grid", gap: 24 }}>
-                <section>
-                    <h3>Select master</h3>
+            <div className="grid-2">
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>Select master</h3>
 
-                    <select
-                        value={selectedMasterId}
-                        onChange={(e) => {
-                            setSuccess("");
-                            setSelectedMasterId(e.target.value);
-                            resetWorkingHoursForm();
-                        }}
-                    >
-                        <option value="">Select master</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.fullName ? `${user.fullName} (${user.email})` : user.email}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="form-grid">
+                        <select
+                            value={selectedMasterId}
+                            onChange={(e) => {
+                                setSuccess("");
+                                setSelectedMasterId(e.target.value);
+                                resetWorkingHoursForm();
+                            }}
+                        >
+                            <option value="">Select master</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.fullName ? `${user.fullName} (${user.email})` : user.email}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                    {selectedMaster && (
-                        <div style={{ marginTop: 8 }}>
+                    {selectedMaster ? (
+                        <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
                             <div><strong>Name:</strong> {selectedMaster.fullName ?? "-"}</div>
                             <div><strong>Email:</strong> {selectedMaster.email}</div>
                             <div><strong>Phone:</strong> {selectedMaster.phoneNumber ?? "-"}</div>
                         </div>
+                    ) : (
+                        <p className="meta" style={{ marginTop: 16 }}>
+                            Choose a master to manage services and working hours.
+                        </p>
                     )}
                 </section>
 
-                <section>
-                    <h3>Assign services</h3>
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>Assign services</h3>
 
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div style={{ display: "grid", gap: 10 }}>
                         {services.map((service) => (
-                            <label key={service.id} style={{ display: "flex", gap: 8 }}>
+                            <label key={service.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                                 <input
                                     type="checkbox"
                                     checked={selectedServiceIds.includes(service.id)}
                                     onChange={() => toggleService(service.id)}
+                                    style={{ width: 18, height: 18, marginTop: 2 }}
                                 />
                                 <span>
-                  {service.name} — {service.price} AZN — {service.durationMinutes} min
+                  <strong>{service.name}</strong>
+                  <br />
+                  <span className="meta">
+                    {service.price} AZN — {service.durationMinutes} min
+                  </span>
                 </span>
                             </label>
                         ))}
                     </div>
 
-                    <div style={{ marginTop: 12 }}>
+                    <div className="inline-actions" style={{ marginTop: 16 }}>
                         <button type="button" onClick={assignServices}>
                             Save services
                         </button>
                     </div>
 
-                    <h4>Current master services</h4>
+                    <h4 style={{ marginTop: 20 }}>Current master services</h4>
                     {masterServices.length === 0 ? (
-                        <p>No services assigned</p>
+                        <p className="meta">No services assigned</p>
                     ) : (
-                        <ul>
+                        <ul className="list-reset list-stack">
                             {masterServices.map((item) => (
-                                <li key={item.serviceId}>{item.name}</li>
+                                <li key={item.serviceId} className="list-item">
+                                    {item.name}
+                                </li>
                             ))}
                         </ul>
                     )}
                 </section>
+            </div>
 
-                <section>
-                    <h3>{editingWorkingHourId === null ? "Add working hours" : "Edit working hours"}</h3>
+            <div className="grid-2" style={{ marginTop: 20 }}>
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>
+                        {editingWorkingHourId === null ? "Add working hours" : "Edit working hours"}
+                    </h3>
 
-                    <form
-                        onSubmit={saveWorkingHours}
-                        style={{ display: "grid", gap: 12, maxWidth: 360 }}
-                    >
+                    <form onSubmit={saveWorkingHours} className="form-grid">
                         <select value={dayOfWeek} onChange={(e) => setDayOfWeek(e.target.value)}>
                             {days.map((day) => (
                                 <option key={day.value} value={day.value}>
@@ -322,34 +341,50 @@ export function ManageMastersPage() {
                             onChange={(e) => setEndTime(e.target.value)}
                         />
 
-                        <div style={{ display: "flex", gap: 8 }}>
+                        <div className="inline-actions">
                             <button type="submit">
                                 {editingWorkingHourId === null ? "Add working hours" : "Update working hours"}
                             </button>
 
                             {editingWorkingHourId !== null && (
-                                <button type="button" onClick={resetWorkingHoursForm}>
+                                <button type="button" className="secondary" onClick={resetWorkingHoursForm}>
                                     Cancel edit
                                 </button>
                             )}
                         </div>
                     </form>
+                </section>
 
-                    <h4>Current working hours</h4>
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>Current working hours</h3>
+
                     {workingHours.length === 0 ? (
-                        <p>No working hours configured</p>
+                        <p className="meta">No working hours configured</p>
                     ) : (
-                        <ul>
+                        <ul className="list-reset list-stack">
                             {workingHours.map((item) => (
-                                <li key={item.id} style={{ marginBottom: 8 }}>
-                                    {days.find((d) => d.value === item.dayOfWeek)?.label} — {item.startTime} - {item.endTime}
-                                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                                        <button type="button" onClick={() => startEditWorkingHour(item)}>
-                                            Edit
-                                        </button>
-                                        <button type="button" onClick={() => deleteWorkingHour(item.id)}>
-                                            Delete
-                                        </button>
+                                <li key={item.id} className="list-item">
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        <div>
+                                            <strong>{days.find((d) => d.value === item.dayOfWeek)?.label}</strong>
+                                        </div>
+
+                                        <div className="meta">
+                                            {item.startTime} - {item.endTime}
+                                        </div>
+
+                                        <div className="inline-actions">
+                                            <button type="button" onClick={() => startEditWorkingHour(item)}>
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="danger"
+                                                onClick={() => deleteWorkingHour(item.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </li>
                             ))}

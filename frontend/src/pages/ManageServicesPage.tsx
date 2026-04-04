@@ -8,6 +8,15 @@ type ServiceItem = {
     durationMinutes: number;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 export function ManageServicesPage() {
     const [items, setItems] = useState<ServiceItem[]>([]);
     const [name, setName] = useState("");
@@ -15,13 +24,16 @@ export function ManageServicesPage() {
     const [durationMinutes, setDurationMinutes] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     async function loadData() {
+        setError("");
+
         try {
             const res = await api.get<ServiceItem[]>("/services");
             setItems(res.data);
-        } catch {
-            setError("Failed to load services");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load services"));
         }
     }
 
@@ -35,6 +47,7 @@ export function ManageServicesPage() {
         setPrice(String(item.price));
         setDurationMinutes(String(item.durationMinutes));
         setError("");
+        setSuccess("");
     }
 
     function resetForm() {
@@ -47,6 +60,22 @@ export function ManageServicesPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+        setSuccess("");
+
+        if (!name.trim()) {
+            setError("Service name is required");
+            return;
+        }
+
+        if (!price || Number(price) < 0) {
+            setError("Price must be zero or greater");
+            return;
+        }
+
+        if (!durationMinutes || Number(durationMinutes) <= 0) {
+            setError("Duration must be greater than zero");
+            return;
+        }
 
         try {
             if (editingId === null) {
@@ -55,74 +84,128 @@ export function ManageServicesPage() {
                     price: Number(price),
                     durationMinutes: Number(durationMinutes),
                 });
+
+                setSuccess("Service created successfully");
             } else {
                 await api.put(`/services/${editingId}`, {
                     name,
                     price: Number(price),
                     durationMinutes: Number(durationMinutes),
                 });
+
+                setSuccess("Service updated successfully");
             }
 
             resetForm();
             await loadData();
-        } catch (err: any) {
-            setError(err?.response?.data?.message ?? "Failed to save service");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to save service"));
         }
     }
 
     async function deleteService(id: number) {
         setError("");
+        setSuccess("");
 
         try {
             await api.delete(`/services/${id}`);
+
             if (editingId === id) {
                 resetForm();
             }
+
+            setSuccess("Service deleted successfully");
             await loadData();
-        } catch (err: any) {
-            setError(err?.response?.data?.message ?? "Failed to delete service");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to delete service"));
         }
     }
 
     return (
-        <div>
+        <div className="section-card">
             <h2>Manage services</h2>
+            <p className="meta">
+                Create, update and delete service types available in the system.
+            </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Service name" />
-                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" />
-                <input
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                    placeholder="Duration minutes"
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                    <button type="submit">{editingId === null ? "Create service" : "Update service"}</button>
-                    {editingId !== null && (
-                        <button type="button" onClick={resetForm}>
-                            Cancel edit
-                        </button>
-                    )}
-                </div>
-            </form>
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
-            {error && <p>{error}</p>}
+            <div className="grid-2">
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>
+                        {editingId === null ? "Create service" : "Edit service"}
+                    </h3>
 
-            <ul>
-                {items.map((item) => (
-                    <li key={item.id} style={{ marginBottom: 12 }}>
-                        {item.name} — {item.price} AZN — {item.durationMinutes} min
-                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                            <button type="button" onClick={() => startEdit(item)}>
-                                Edit
+                    <form onSubmit={handleSubmit} className="form-grid">
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Service name"
+                        />
+
+                        <input
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder="Price"
+                        />
+
+                        <input
+                            value={durationMinutes}
+                            onChange={(e) => setDurationMinutes(e.target.value)}
+                            placeholder="Duration minutes"
+                        />
+
+                        <div className="inline-actions">
+                            <button type="submit">
+                                {editingId === null ? "Create service" : "Update service"}
                             </button>
-                            <button type="button" onClick={() => deleteService(item.id)}>
-                                Delete
-                            </button>
+
+                            {editingId !== null && (
+                                <button type="button" className="secondary" onClick={resetForm}>
+                                    Cancel edit
+                                </button>
+                            )}
                         </div>
-                    </li>
-                ))}
-            </ul>
+                    </form>
+                </section>
+
+                <section className="section-card">
+                    <h3 style={{ marginTop: 0 }}>Current services</h3>
+
+                    {items.length === 0 ? (
+                        <p className="meta">No services found.</p>
+                    ) : (
+                        <ul className="list-reset list-stack">
+                            {items.map((item) => (
+                                <li key={item.id} className="list-item">
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                                            <strong>{item.name}</strong>
+                                            <span className="badge">{item.durationMinutes} min</span>
+                                        </div>
+
+                                        <div className="meta">Price: {item.price} AZN</div>
+
+                                        <div className="inline-actions">
+                                            <button type="button" onClick={() => startEdit(item)}>
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="danger"
+                                                onClick={() => deleteService(item.id)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

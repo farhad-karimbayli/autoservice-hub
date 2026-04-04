@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { api } from "../shared/api/client";
 import { useAuth } from "../shared/auth/AuthContext";
 
@@ -14,6 +14,15 @@ type MeResponse = {
     }>;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 export function LoginPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -25,6 +34,16 @@ export function LoginPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+
+        if (!email.trim()) {
+            setError("Email is required");
+            return;
+        }
+
+        if (!password.trim()) {
+            setError("Password is required");
+            return;
+        }
 
         try {
             const loginResponse = await api.post<LoginResponse>("/auth/login", {
@@ -52,34 +71,44 @@ export function LoginPage() {
 
             login(token, roleClaim, fullNameClaim);
             navigate("/");
-        } catch {
-            setError("Invalid email or password");
+        } catch (error) {
+            setError(getErrorMessage(error, "Invalid email or password"));
         }
     }
 
     return (
-        <div>
-            <h2>Login</h2>
+        <div
+            style={{
+                maxWidth: 520,
+                margin: "0 auto",
+            }}
+        >
+            <div className="section-card">
+                <h2>Login</h2>
+                <p className="meta">
+                    Sign in to access appointments, inventory, orders and role-based tools.
+                </p>
 
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
+                {error && <div className="message error">{error}</div>}
 
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                <form onSubmit={handleSubmit} className="form-grid">
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
 
-                <button type="submit">Login</button>
-            </form>
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
 
-            {error && <p>{error}</p>}
+                    <button type="submit">Login</button>
+                </form>
+            </div>
         </div>
     );
 }
