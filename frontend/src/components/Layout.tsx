@@ -2,7 +2,7 @@ import { Link, Outlet } from "react-router";
 import { useAuth } from "../shared/auth/AuthContext";
 
 export function Layout() {
-    const { role, logout, token } = useAuth();
+    const { role, fullName, logout, token } = useAuth();
 
     return (
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
@@ -52,9 +52,11 @@ export function Layout() {
                     {role === "Admin" && <Link to="/admin/users">Admin users</Link>}
                 </nav>
 
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <span>
-            Current role: <strong>{role ?? "Guest"}</strong>
+            {token
+                ? `Signed in as: ${fullName ?? "User"} (${role ?? "Unknown"})`
+                : "Not signed in"}
           </span>
 
                     {!token ? (

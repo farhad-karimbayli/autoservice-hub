@@ -1,12 +1,11 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useMemo,
     useState,
-    useEffect,
     type ReactNode,
 } from "react";
-import { clearAuth, getRole, getToken, saveAuth } from "./auth";
 
 type AuthContextValue = {
     token: string | null;
@@ -24,8 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [fullName, setFullName] = useState<string | null>(null);
 
     useEffect(() => {
-        const storedToken = getToken();
-        const storedRole = getRole();
+        const storedToken = localStorage.getItem("token");
+        const storedRole = localStorage.getItem("role");
         const storedFullName = localStorage.getItem("fullName");
 
         if (storedToken) setToken(storedToken);
@@ -33,29 +32,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedFullName) setFullName(storedFullName);
     }, []);
 
-    const value = useMemo<AuthContextValue>(
+    function login(newToken: string, newRole: string, newFullName: string) {
+        setToken(newToken);
+        setRole(newRole);
+        setFullName(newFullName);
+
+        localStorage.setItem("token", newToken);
+        localStorage.setItem("role", newRole);
+        localStorage.setItem("fullName", newFullName);
+    }
+
+    function logout() {
+        setToken(null);
+        setRole(null);
+        setFullName(null);
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("fullName");
+    }
+
+    const value = useMemo(
         () => ({
             token,
             role,
             fullName,
-
-            login: (newToken: string, newRole: string, newFullName: string) => {
-                saveAuth(newToken, newRole);
-                localStorage.setItem("fullName", newFullName);
-
-                setToken(newToken);
-                setRole(newRole);
-                setFullName(newFullName);
-            },
-
-            logout: () => {
-                clearAuth();
-                localStorage.removeItem("fullName");
-
-                setToken(null);
-                setRole(null);
-                setFullName(null);
-            },
+            login,
+            logout,
         }),
         [token, role, fullName]
     );

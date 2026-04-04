@@ -25,13 +25,18 @@ public sealed class JwtTokenService
     {
         var roles = await _userManager.GetRolesAsync(user);
 
+        var fullName = string.IsNullOrWhiteSpace(user.FullName)
+            ? (user.UserName ?? user.Email ?? "User")
+            : user.FullName;
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
-            new(ClaimTypes.Email, user.Email ?? string.Empty)
+            new(ClaimTypes.Name, fullName),
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
+            new("fullName", fullName)
         };
 
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
