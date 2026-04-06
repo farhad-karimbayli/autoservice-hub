@@ -13,10 +13,35 @@ public sealed class AppointmentService
     private readonly AppDbContext _dbContext;
     private readonly UserManager<AppUser> _userManager;
 
-    public AppointmentService(AppDbContext dbContext, UserManager<AppUser> userManager)
+    public AppointmentService(
+        AppDbContext dbContext,
+        UserManager<AppUser> userManager)
     {
         _dbContext = dbContext;
         _userManager = userManager;
+    }
+
+    private async Task<string?> GetUserFullNameAsync(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return null;
+
+        var user = await _userManager.Users
+            .Where(x => x.Id == userId)
+            .Select(x => new
+            {
+                x.FullName,
+                x.Email
+            })
+            .FirstOrDefaultAsync();
+
+        if (user is null)
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(user.FullName))
+            return user.FullName;
+
+        return user.Email;
     }
 
     private async Task<bool> IsMasterAvailableAsync(
@@ -25,8 +50,7 @@ public sealed class AppointmentService
         DateTime startDateTime,
         int? ignoreAppointmentId = null)
     {
-        var service = await _dbContext.Services
-            .FirstOrDefaultAsync(x => x.Id == serviceId);
+        var service = await _dbContext.Services.FirstOrDefaultAsync(x => x.Id == serviceId);
 
         if (service is null)
             return false;
@@ -113,7 +137,9 @@ public sealed class AppointmentService
             result.Add(new AvailableMasterResponse
             {
                 MasterId = user.Id,
-                FullName = user.FullName
+                FullName = !string.IsNullOrWhiteSpace(user.FullName)
+                    ? user.FullName
+                    : (user.Email ?? user.Id)
             });
         }
 
@@ -173,18 +199,25 @@ public sealed class AppointmentService
             Status = appointment.Status.ToString(),
             Comment = appointment.Comment,
             ClientId = appointment.ClientId,
+            ClientName = await GetUserFullNameAsync(appointment.ClientId),
             MasterId = appointment.MasterId,
-            MasterName = masterUser.FullName
+            MasterName = await GetUserFullNameAsync(appointment.MasterId)
         };
     }
 
     public async Task<List<AppointmentResponse>> GetClientAppointmentsAsync(string clientId)
     {
-        return await _dbContext.Appointments
+        var appointments = await _dbContext.Appointments
             .Include(x => x.Service)
             .Where(x => x.ClientId == clientId)
             .OrderByDescending(x => x.Date)
-            .Select(x => new AppointmentResponse
+            .ToListAsync();
+
+        var result = new List<AppointmentResponse>();
+
+        foreach (var x in appointments)
+        {
+            result.Add(new AppointmentResponse
             {
                 Id = x.Id,
                 ServiceId = x.ServiceId,
@@ -193,19 +226,28 @@ public sealed class AppointmentService
                 Status = x.Status.ToString(),
                 Comment = x.Comment,
                 ClientId = x.ClientId,
+                ClientName = await GetUserFullNameAsync(x.ClientId),
                 MasterId = x.MasterId,
-                MasterName = null
-            })
-            .ToListAsync();
+                MasterName = await GetUserFullNameAsync(x.MasterId)
+            });
+        }
+
+        return result;
     }
 
     public async Task<List<AppointmentResponse>> GetMasterAppointmentsAsync(string masterId)
     {
-        return await _dbContext.Appointments
+        var appointments = await _dbContext.Appointments
             .Include(x => x.Service)
             .Where(x => x.MasterId == masterId)
             .OrderByDescending(x => x.Date)
-            .Select(x => new AppointmentResponse
+            .ToListAsync();
+
+        var result = new List<AppointmentResponse>();
+
+        foreach (var x in appointments)
+        {
+            result.Add(new AppointmentResponse
             {
                 Id = x.Id,
                 ServiceId = x.ServiceId,
@@ -214,18 +256,27 @@ public sealed class AppointmentService
                 Status = x.Status.ToString(),
                 Comment = x.Comment,
                 ClientId = x.ClientId,
+                ClientName = await GetUserFullNameAsync(x.ClientId),
                 MasterId = x.MasterId,
-                MasterName = null
-            })
-            .ToListAsync();
+                MasterName = await GetUserFullNameAsync(x.MasterId)
+            });
+        }
+
+        return result;
     }
 
     public async Task<List<AppointmentResponse>> GetAllAsync()
     {
-        return await _dbContext.Appointments
+        var appointments = await _dbContext.Appointments
             .Include(x => x.Service)
             .OrderByDescending(x => x.Date)
-            .Select(x => new AppointmentResponse
+            .ToListAsync();
+
+        var result = new List<AppointmentResponse>();
+
+        foreach (var x in appointments)
+        {
+            result.Add(new AppointmentResponse
             {
                 Id = x.Id,
                 ServiceId = x.ServiceId,
@@ -234,10 +285,13 @@ public sealed class AppointmentService
                 Status = x.Status.ToString(),
                 Comment = x.Comment,
                 ClientId = x.ClientId,
+                ClientName = await GetUserFullNameAsync(x.ClientId),
                 MasterId = x.MasterId,
-                MasterName = null
-            })
-            .ToListAsync();
+                MasterName = await GetUserFullNameAsync(x.MasterId)
+            });
+        }
+
+        return result;
     }
 
     public async Task<AppointmentResponse> AssignMasterAsync(int appointmentId, string masterId)
@@ -259,15 +313,6 @@ public sealed class AppointmentService
         if (!isMaster)
             throw new InvalidOperationException("Selected user is not a master.");
 
-        var available = await IsMasterAvailableAsync(
-            masterId,
-            appointment.ServiceId,
-            appointment.Date,
-            appointment.Id);
-
-        if (!available)
-            throw new InvalidOperationException("Selected master is not available at the chosen time.");
-
         appointment.MasterId = masterId;
 
         if (appointment.Status == AppointmentStatus.Created)
@@ -284,8 +329,9 @@ public sealed class AppointmentService
             Status = appointment.Status.ToString(),
             Comment = appointment.Comment,
             ClientId = appointment.ClientId,
+            ClientName = await GetUserFullNameAsync(appointment.ClientId),
             MasterId = appointment.MasterId,
-            MasterName = masterUser.FullName
+            MasterName = await GetUserFullNameAsync(appointment.MasterId)
         };
     }
 
@@ -314,8 +360,9 @@ public sealed class AppointmentService
             Status = appointment.Status.ToString(),
             Comment = appointment.Comment,
             ClientId = appointment.ClientId,
+            ClientName = await GetUserFullNameAsync(appointment.ClientId),
             MasterId = appointment.MasterId,
-            MasterName = null
+            MasterName = await GetUserFullNameAsync(appointment.MasterId)
         };
     }
 
@@ -350,15 +397,16 @@ public sealed class AppointmentService
             Status = appointment.Status.ToString(),
             Comment = appointment.Comment,
             ClientId = appointment.ClientId,
+            ClientName = await GetUserFullNameAsync(appointment.ClientId),
             MasterId = appointment.MasterId,
-            MasterName = null
+            MasterName = await GetUserFullNameAsync(appointment.MasterId)
         };
     }
 
     public async Task<AppointmentResponse> RescheduleAsync(
-    int appointmentId,
-    string clientId,
-    RescheduleAppointmentRequest request)
+        int appointmentId,
+        string clientId,
+        RescheduleAppointmentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.MasterId))
             throw new InvalidOperationException("Master is required.");
@@ -413,8 +461,9 @@ public sealed class AppointmentService
             Status = appointment.Status.ToString(),
             Comment = appointment.Comment,
             ClientId = appointment.ClientId,
+            ClientName = await GetUserFullNameAsync(appointment.ClientId),
             MasterId = appointment.MasterId,
-            MasterName = masterUser.FullName
+            MasterName = await GetUserFullNameAsync(appointment.MasterId)
         };
     }
 }

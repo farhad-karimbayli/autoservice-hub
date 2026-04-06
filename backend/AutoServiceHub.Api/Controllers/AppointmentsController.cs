@@ -75,6 +75,9 @@ public sealed class AppointmentsController : ControllerBase
     [HttpPost("{id:int}/assign-master")]
     public async Task<IActionResult> AssignMaster(int id, AssignMasterRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.MasterId))
+            return BadRequest(new { message = "MasterId is required." });
+
         try
         {
             var result = await _appointmentService.AssignMasterAsync(id, request.MasterId);

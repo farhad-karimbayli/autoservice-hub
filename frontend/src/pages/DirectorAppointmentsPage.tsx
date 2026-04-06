@@ -10,6 +10,7 @@ type AppointmentItem = {
     status: string;
     comment?: string | null;
     clientId: string;
+    clientName?: string | null;
     masterId?: string | null;
     masterName?: string | null;
 };
@@ -116,7 +117,7 @@ export function DirectorAppointmentsPage() {
                                 <div className="entity-main">
                                     <strong>{item.serviceName}</strong>
                                     <div className="meta">{new Date(item.date).toLocaleString()}</div>
-                                    <div>Client ID: {item.clientId}</div>
+                                    <div>Client: {item.clientName ?? "Unknown client"}</div>
                                     <div>Master: {item.masterName ?? "Not assigned"}</div>
                                     {item.comment && <div>Comment: {item.comment}</div>}
                                 </div>
