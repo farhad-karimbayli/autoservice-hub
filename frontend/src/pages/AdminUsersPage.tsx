@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../shared/api/client";
+import { getStatusClass } from "../shared/ui/status";
 
 type UserItem = {
     id: string;
@@ -11,43 +12,17 @@ type UserItem = {
 
 const roles = ["Client", "Master", "Director", "Admin"];
 
-function getErrorMessage(error: any, fallback: string) {
-    return (
-        error?.response?.data?.message ||
-        error?.response?.data ||
-        error?.message ||
-        fallback
-    );
-}
-
-function getRoleClass(role?: string | null) {
-    switch (role) {
-        case "Admin":
-            return "badge danger";
-        case "Director":
-            return "badge warning";
-        case "Master":
-            return "badge success";
-        case "Client":
-            return "badge";
-        default:
-            return "badge";
-    }
-}
-
 export function AdminUsersPage() {
     const [items, setItems] = useState<UserItem[]>([]);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
     async function loadUsers() {
-        setError("");
-
         try {
             const res = await api.get<UserItem[]>("/admin/users");
             setItems(res.data);
-        } catch (error) {
-            setError(getErrorMessage(error, "Failed to load users"));
+        } catch {
+            setError("Failed to load users");
         }
     }
 
@@ -56,79 +31,57 @@ export function AdminUsersPage() {
     }, []);
 
     async function assignRole(userId: string, role: string) {
-        setError("");
-        setSuccess("");
-
         try {
             await api.post("/admin/assign-role", { userId, role });
-            setSuccess(`Role changed to ${role}`);
+            setSuccess("Role updated successfully");
             await loadUsers();
-        } catch (error) {
-            setError(getErrorMessage(error, "Failed to assign role"));
+        } catch {
+            setError("Failed to assign role");
         }
     }
 
     return (
-        <div className="section-card">
-            <h2>Admin users</h2>
-            <p className="meta">
-                View all registered users and manage their current roles.
-            </p>
+        <div className="card-grid">
+            <div>
+                <h2>Admin users</h2>
+                <p className="card-subtitle">Manage user roles and review registered accounts.</p>
+            </div>
 
             {error && <div className="message error">{error}</div>}
             {success && <div className="message success">{success}</div>}
 
-            {items.length === 0 ? (
-                <p className="meta">No users found.</p>
-            ) : (
-                <ul className="list-reset list-stack">
-                    {items.map((item) => (
-                        <li key={item.id} className="list-item">
-                            <div style={{ display: "grid", gap: 10 }}>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <strong>{item.fullName?.trim() ? item.fullName : item.email}</strong>
-                                    <span className={getRoleClass(item.role)}>
-                    {item.role ?? "No role"}
-                  </span>
-                                </div>
-
-                                <div>
-                                    <strong>Email:</strong> {item.email ?? "-"}
-                                </div>
-
-                                <div>
-                                    <strong>Phone:</strong> {item.phoneNumber ?? "-"}
-                                </div>
-
-                                <div className="meta">
-                                    User ID: {item.id}
-                                </div>
-
-                                <div className="inline-actions">
-                                    {roles.map((role) => (
-                                        <button
-                                            key={role}
-                                            type="button"
-                                            className={role === "Admin" ? "danger" : undefined}
-                                            onClick={() => assignRole(item.id, role)}
-                                        >
-                                            Set {role}
-                                        </button>
-                                    ))}
-                                </div>
+            <ul className="list-reset list-stack">
+                {items.map((item) => (
+                    <li key={item.id} className="list-item">
+                        <div className="entity-row">
+                            <div className="entity-main">
+                                <strong>{item.fullName?.trim() ? item.fullName : item.email}</strong>
+                                <div>Email: {item.email ?? "-"}</div>
+                                <div>Phone: {item.phoneNumber ?? "-"}</div>
                             </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
+
+                            <div className="entity-side">
+                <span className={getStatusClass(item.role ?? "No role")}>
+                  {item.role ?? "No role"}
+                </span>
+                            </div>
+                        </div>
+
+                        <div className="inline-actions">
+                            {roles.map((role) => (
+                                <button
+                                    key={role}
+                                    className="secondary"
+                                    type="button"
+                                    onClick={() => assignRole(item.id, role)}
+                                >
+                                    Set {role}
+                                </button>
+                            ))}
+                        </div>
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }

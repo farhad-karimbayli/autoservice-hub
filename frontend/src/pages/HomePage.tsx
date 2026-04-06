@@ -4,25 +4,25 @@ export function HomePage() {
     const { fullName, role } = useAuth();
 
     return (
-        <div className="grid-2">
-            <section className="section-card">
-                <h2>{fullName ? `Welcome, ${fullName}!` : "Welcome!"}</h2>
-                <p className="meta">
-                    AutoService Hub helps manage appointments, parts inventory, service catalog
-                    and role-based workflows for clients, masters, directors and admins.
-                </p>
-                {role && <span className="badge">Current role: {role}</span>}
-            </section>
+        <div className="section-card">
+            <h2>Welcome, {fullName ?? "User"} 👋</h2>
 
-            <section className="section-card">
-                <h2>Quick overview</h2>
-                <ul className="list-reset list-stack">
-                    <li className="list-item">Clients can book services, reschedule and buy parts.</li>
-                    <li className="list-item">Masters can manage their appointments and parts requests.</li>
-                    <li className="list-item">Directors can manage services, parts, inventory and masters.</li>
-                    <li className="list-item">Admins can manage users and roles.</li>
+            <p className="meta">
+                You are logged in as <strong>{role}</strong>.
+            </p>
+
+            <div style={{ marginTop: 16 }}>
+                <p>
+                    This system allows you to:
+                </p>
+
+                <ul>
+                    <li>Book and manage appointments</li>
+                    <li>Manage services and masters</li>
+                    <li>Track inventory and parts</li>
+                    <li>Handle parts requests</li>
                 </ul>
-            </section>
+            </div>
         </div>
     );
 }

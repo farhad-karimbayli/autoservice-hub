@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../shared/api/client";
+import { getStatusClass } from "../shared/ui/status";
 
 type AppointmentItem = {
     id: number;
@@ -19,6 +20,15 @@ type MasterItem = {
     fullName?: string | null;
 };
 
+function getErrorMessage(error: any, fallback: string) {
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        fallback
+    );
+}
+
 const statuses = ["Created", "Confirmed", "InProgress", "Done", "Cancelled"];
 
 export function DirectorAppointmentsPage() {
@@ -26,6 +36,7 @@ export function DirectorAppointmentsPage() {
     const [masters, setMasters] = useState<MasterItem[]>([]);
     const [selectedMasters, setSelectedMasters] = useState<Record<number, string>>({});
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     async function loadData() {
         setError("");
@@ -38,8 +49,8 @@ export function DirectorAppointmentsPage() {
 
             setItems(appointmentsRes.data);
             setMasters(mastersRes.data);
-        } catch {
-            setError("Failed to load director appointments");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to load director appointments"));
         }
     }
 
@@ -49,12 +60,14 @@ export function DirectorAppointmentsPage() {
 
     async function updateStatus(id: number, status: string) {
         setError("");
+        setSuccess("");
 
         try {
             await api.post(`/appointments/${id}/status`, { status });
+            setSuccess("Status updated successfully");
             await loadData();
-        } catch {
-            setError("Failed to update status");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to update status"));
         }
     }
 
@@ -67,68 +80,93 @@ export function DirectorAppointmentsPage() {
         }
 
         setError("");
+        setSuccess("");
 
         try {
-            await api.post(`/appointments/${id}/assign-master`, { masterId });
+            await api.post(`/appointments/${id}/assign-master`, {
+                masterId,
+            });
+
+            setSuccess("Master assigned successfully");
             await loadData();
-        } catch {
-            setError("Failed to assign master");
+        } catch (error) {
+            setError(getErrorMessage(error, "Failed to assign master"));
         }
     }
 
     return (
-        <div>
-            <h2>Director appointments</h2>
+        <div className="card-grid">
+            <div>
+                <h2>Director appointments</h2>
+                <p className="card-subtitle">Manage all service appointments and assign masters.</p>
+            </div>
 
-            {error && <p>{error}</p>}
+            {error && <div className="message error">{error}</div>}
+            {success && <div className="message success">{success}</div>}
 
             {items.length === 0 ? (
-                <p>No appointments found</p>
+                <div className="section-card">
+                    <p>No appointments found.</p>
+                </div>
             ) : (
-                <ul>
+                <ul className="list-reset list-stack">
                     {items.map((item) => (
-                        <li key={item.id} style={{ marginBottom: 20 }}>
-                            <div>
-                                <strong>{item.serviceName}</strong>
+                        <li key={item.id} className="list-item">
+                            <div className="entity-row">
+                                <div className="entity-main">
+                                    <strong>{item.serviceName}</strong>
+                                    <div className="meta">{new Date(item.date).toLocaleString()}</div>
+                                    <div>Client ID: {item.clientId}</div>
+                                    <div>Master: {item.masterName ?? "Not assigned"}</div>
+                                    {item.comment && <div>Comment: {item.comment}</div>}
+                                </div>
+
+                                <div className="entity-side">
+                                    <span className={getStatusClass(item.status)}>{item.status}</span>
+                                </div>
                             </div>
-                            <div>{new Date(item.date).toLocaleString()}</div>
-                            <div>Status: {item.status}</div>
-                            <div>ClientId: {item.clientId}</div>
-                            <div>Master: {item.masterName ?? item.masterId ?? "Not assigned"}</div>
-                            {item.comment && <div>Comment: {item.comment}</div>}
 
-                            <div style={{ display: "grid", gap: 8, maxWidth: 420, marginTop: 8 }}>
-                                <select
-                                    value={selectedMasters[item.id] ?? ""}
-                                    onChange={(e) =>
-                                        setSelectedMasters((prev) => ({
-                                            ...prev,
-                                            [item.id]: e.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="">Select master</option>
-                                    {masters.map((master) => (
-                                        <option key={master.id} value={master.id}>
-                                            {master.fullName ? `${master.fullName} (${master.email})` : master.email}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <button type="button" onClick={() => assignMaster(item.id)}>
-                                    Assign master
-                                </button>
-
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    {statuses.map((status) => (
-                                        <button
-                                            key={status}
-                                            type="button"
-                                            onClick={() => updateStatus(item.id, status)}
+                            <div className="split-grid" style={{ marginTop: 16 }}>
+                                <div className="section-card">
+                                    <h3 className="card-title">Assign master</h3>
+                                    <div className="form-grid">
+                                        <select
+                                            value={selectedMasters[item.id] ?? ""}
+                                            onChange={(e) =>
+                                                setSelectedMasters((prev) => ({
+                                                    ...prev,
+                                                    [item.id]: e.target.value,
+                                                }))
+                                            }
                                         >
-                                            Set {status}
+                                            <option value="">Select master</option>
+                                            {masters.map((master) => (
+                                                <option key={master.id} value={master.id}>
+                                                    {master.fullName ? `${master.fullName} (${master.email})` : master.email}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        <button type="button" onClick={() => assignMaster(item.id)}>
+                                            Assign master
                                         </button>
-                                    ))}
+                                    </div>
+                                </div>
+
+                                <div className="section-card">
+                                    <h3 className="card-title">Change status</h3>
+                                    <div className="inline-actions">
+                                        {statuses.map((status) => (
+                                            <button
+                                                key={status}
+                                                className="secondary"
+                                                type="button"
+                                                onClick={() => updateStatus(item.id, status)}
+                                            >
+                                                {status}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </li>
