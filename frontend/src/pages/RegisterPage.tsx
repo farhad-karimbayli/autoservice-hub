@@ -31,6 +31,7 @@ export function RegisterPage() {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
 
     async function handleSubmit(e: React.FormEvent) {
@@ -54,6 +55,11 @@ export function RegisterPage() {
 
         if (!password.trim()) {
             setError("Password is required");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Password and confirmation do not match");
             return;
         }
 
@@ -81,7 +87,7 @@ export function RegisterPage() {
             const fullNameClaim =
                 meResponse.data.claims.find((x) => x.type === "fullName")?.value ??
                 meResponse.data.claims.find((x) => x.type.endsWith("/name"))?.value ??
-                fullName;
+                "User";
 
             login(token, roleClaim, fullNameClaim);
             navigate("/");
@@ -91,21 +97,16 @@ export function RegisterPage() {
     }
 
     return (
-        <div
-            style={{
-                maxWidth: 560,
-                margin: "0 auto",
-            }}
-        >
-            <div className="section-card">
+        <div className="card-grid">
+            <div>
                 <h2>Register</h2>
-                <p className="meta">
-                    Create a new account to book services, manage appointments and buy parts.
-                </p>
+                <p className="card-subtitle">Create your account to start using AutoService Hub.</p>
+            </div>
 
-                {error && <div className="message error">{error}</div>}
+            {error && <div className="message error">{error}</div>}
 
-                <form onSubmit={handleSubmit} className="form-grid">
+            <section className="section-card">
+                <form className="form-grid" onSubmit={handleSubmit}>
                     <input
                         type="text"
                         placeholder="Full name"
@@ -134,9 +135,16 @@ export function RegisterPage() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
 
-                    <button type="submit">Create account</button>
+                    <input
+                        type="password"
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+
+                    <button type="submit">Register</button>
                 </form>
-            </div>
+            </section>
         </div>
     );
 }

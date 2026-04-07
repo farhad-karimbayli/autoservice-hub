@@ -24,6 +24,7 @@ export function Layout() {
                     <Link className="nav-link" to="/">Home</Link>
 
                     {token && <Link className="nav-link" to="/services">Services</Link>}
+                    {token && <Link className="nav-link" to="/profile">My profile</Link>}
 
                     {role === "Client" && (
                         <>

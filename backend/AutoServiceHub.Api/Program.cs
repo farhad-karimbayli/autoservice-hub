@@ -4,6 +4,7 @@ using AutoServiceHub.Api.Application.Auth;
 using AutoServiceHub.Api.Application.Inventory;
 using AutoServiceHub.Api.Application.Orders;
 using AutoServiceHub.Api.Application.PartsRequests;
+using AutoServiceHub.Api.Application.Profile;
 using AutoServiceHub.Api.Application.Services;
 using AutoServiceHub.Api.Domain;
 using AutoServiceHub.Api.Infrastructure;
@@ -24,6 +25,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<PartsRequestService>();
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<ProfileService>();
 
 builder.Services.AddSwaggerGen(options =>
 {

@@ -18,6 +18,7 @@ import { ManagePartsPage } from "../pages/ManagePartsPage";
 import { ManageMastersPage } from "../pages/ManageMastersPage";
 import { MasterAppointmentsPage } from "../pages/MasterAppointmentsPage";
 import { DirectorAppointmentsPage } from "../pages/DirectorAppointmentsPage";
+import { MyProfilePage } from "../pages/MyProfilePage";
 
 export const router = createBrowserRouter([
     {
@@ -27,6 +28,15 @@ export const router = createBrowserRouter([
             { index: true, element: <HomePage /> },
             { path: "login", element: <LoginPage /> },
             { path: "register", element: <RegisterPage /> },
+
+            {
+                path: "profile",
+                element: (
+                    <ProtectedRoute>
+                        <MyProfilePage />
+                    </ProtectedRoute>
+                ),
+            },
 
             {
                 path: "services",
