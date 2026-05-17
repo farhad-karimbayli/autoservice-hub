@@ -22,3 +22,4 @@ publish/
 *.sqlite
 *.pem
 publish/
+autoservicehub_deploy*
