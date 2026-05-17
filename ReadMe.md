@@ -32,6 +32,7 @@ It provides role-based access for clients, masters, directors, and administrator
   - Assign masters
   - Update appointment status
 
+<<<<<<< HEAD
 - Masters can:
   
   - View their assigned appointments
@@ -174,3 +175,46 @@ http://localhost:5173
 - Calendar UI for scheduling
 - Advanced reporting
 - Real-time updates
+=======
+## Запуск в Docker
+
+```bash
+docker compose up -d --build
+```
+
+После запуска:
+
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:5126
+- Swagger: http://localhost:5126/swagger
+
+Для остановки:
+
+```bash
+docker compose down
+```
+
+## CI/CD
+
+Workflow `.github/workflows/ci-cd.yml` запускается при `git push` в ветку `main`.
+
+Pipeline:
+
+1. Собирает backend и frontend production bundle.
+2. Собирает Docker images `autoservicehub-backend` и `autoservicehub-frontend`.
+3. Публикует images в Docker Hub с тегами `latest` и commit SHA.
+4. Подключается к AWS Linux VM по SSH, подтягивает новые images и перезапускает контейнеры через `docker compose`.
+
+GitHub Secrets для CI/CD:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+- `AWS_HOST`
+- `AWS_USER`
+- `AWS_SSH_KEY`
+- `AWS_APP_DIR`
+- `MSSQL_SA_PASSWORD`
+- `JWT_KEY`
+- `PUBLIC_URL`
+
+На AWS Linux VM должны быть установлены Docker и Docker Compose plugin. Пользователь `AWS_USER` должен иметь право запускать Docker.

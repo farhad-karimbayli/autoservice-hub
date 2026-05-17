@@ -1,0 +1,39 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    restart: unless-stopped
+
+  backend:
+    image: "${DOCKERHUB_USERNAME}/autoservicehub-backend:${IMAGE_TAG:-latest}"
+    depends_on:
+      - sqlserver
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=AutoServiceHubDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True"
+      Cors__AllowedOrigins__0: "${PUBLIC_URL:-http://localhost}"
+      Database__ApplyMigrations: "true"
+      Database__MigrationRetries: "20"
+      Database__MigrationRetryDelaySeconds: "5"
+      Jwt__Key: "${JWT_KEY}"
+      Jwt__Issuer: "${JWT_ISSUER:-AutoServiceHub}"
+      Jwt__Audience: "${JWT_AUDIENCE:-AutoServiceHub.Client}"
+      Jwt__ExpiresInMinutes: "${JWT_EXPIRES_IN_MINUTES:-60}"
+    restart: unless-stopped
+
+  frontend:
+    image: "${DOCKERHUB_USERNAME}/autoservicehub-frontend:${IMAGE_TAG:-latest}"
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:

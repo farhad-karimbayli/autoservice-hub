@@ -17,5 +17,6 @@ dist/
 # .NET
 bin/
 obj/
+publish/
 *.db
 *.sqlite

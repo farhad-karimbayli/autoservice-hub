@@ -65,8 +65,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>()?
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .ToArray();
+
+        if (allowedOrigins is not { Length: > 0 })
+        {
+            allowedOrigins = ["http://localhost:5173"];
+        }
+
         policy
-            .WithOrigins("http://localhost:5173")
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -138,7 +149,43 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    await IdentitySeeder.Seed(scope.ServiceProvider);
+    await InitializeDatabaseAsync(scope.ServiceProvider, app.Configuration, app.Logger);
 }
 
 app.Run();
+
+static async Task InitializeDatabaseAsync(
+    IServiceProvider services,
+    IConfiguration configuration,
+    ILogger logger)
+{
+    var applyMigrations = configuration.GetValue("Database:ApplyMigrations", false);
+    var retryCount = configuration.GetValue("Database:MigrationRetries", 10);
+    var retryDelaySeconds = configuration.GetValue("Database:MigrationRetryDelaySeconds", 5);
+
+    for (var attempt = 1; attempt <= retryCount; attempt++)
+    {
+        try
+        {
+            if (applyMigrations)
+            {
+                var dbContext = services.GetRequiredService<AppDbContext>();
+                await dbContext.Database.MigrateAsync();
+            }
+
+            await IdentitySeeder.Seed(services);
+            return;
+        }
+        catch (Exception ex) when (attempt < retryCount)
+        {
+            logger.LogWarning(
+                ex,
+                "Database initialization failed on attempt {Attempt}/{RetryCount}. Retrying in {DelaySeconds} seconds.",
+                attempt,
+                retryCount,
+                retryDelaySeconds);
+
+            await Task.Delay(TimeSpan.FromSeconds(retryDelaySeconds));
+        }
+    }
+}

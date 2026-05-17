@@ -1,0 +1,51 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-AutoServiceHub!2026}"
+    ports:
+      - "${SQLSERVER_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: AutoServiceHub.Api/Dockerfile
+    image: "${DOCKERHUB_USERNAME:-local}/autoservicehub-backend:${IMAGE_TAG:-local}"
+    depends_on:
+      - sqlserver
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: "Server=sqlserver,1433;Database=AutoServiceHubDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-AutoServiceHub!2026};Encrypt=False;TrustServerCertificate=True"
+      Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-8080}"
+      Cors__AllowedOrigins__1: "http://localhost:5173"
+      Database__ApplyMigrations: "true"
+      Database__MigrationRetries: "20"
+      Database__MigrationRetryDelaySeconds: "5"
+      Jwt__Key: "${JWT_KEY:-auto_service_hub_local_dev_secret_key_1234567890}"
+      Jwt__Issuer: "${JWT_ISSUER:-AutoServiceHub}"
+      Jwt__Audience: "${JWT_AUDIENCE:-AutoServiceHub.Client}"
+      Jwt__ExpiresInMinutes: "${JWT_EXPIRES_IN_MINUTES:-60}"
+    ports:
+      - "${BACKEND_PORT:-5126}:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    image: "${DOCKERHUB_USERNAME:-local}/autoservicehub-frontend:${IMAGE_TAG:-local}"
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
