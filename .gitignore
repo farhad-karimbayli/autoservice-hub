@@ -20,3 +20,5 @@ obj/
 publish/
 *.db
 *.sqlite
+*.pem
+publish/
